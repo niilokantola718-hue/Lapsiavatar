@@ -35,6 +35,7 @@
             padding: 10px;
             border-radius: 5px;
             font-size: 14px;
+            max-width: 300px;
         }
     </style>
 </head>
@@ -137,55 +138,66 @@ function enterAvatarBody() {
     
     const button = document.getElementById('enterButton');
     button.style.display = 'none';
-    document.getElementById('status').textContent = 'Sovitaudutaan lapsen kehoon...';
     
+    // SIIRRY AVATARIN KEHOON VAikka WebXR EI TOIMISI
     camera.position.set(0, 1.2, 0);
+    
+    // LUKITSE KAMERA AVATARIIN
+    avatar.add(camera);
+    camera.position.set(0, 0.2, 0);
+    
     isInAvatarBody = true;
     
-    startWebXR();
+    document.getElementById('status').innerHTML = 
+        '👶 Olet nyt lapsen kehossa!<br>WebXR ei saatavilla, mutta voit kokeilla 3D-kokemusta.';
     
-    setTimeout(() => {
-        document.getElementById('status').innerHTML = '✅ Olet nyt lapsen kehossa!';
-    }, 1000);
+    // Yritä WebXR silti
+    startWebXR();
 }
 
-// ========== KORJATTU WEBXR OSA ==========
 function startWebXR() {
-    console.log("Yritetään käynnistää WebXR...");
+    console.log("Tarkistetaan WebXR-tukea...");
     
     if (navigator.xr) {
-        // TARKISTA ONKO immersive-ar TUETTU
-        navigator.xr.isSessionSupported('immersive-ar')
-            .then((supported) => {
+        const trySessions = ['immersive-vr', 'immersive-ar'];
+        
+        const tryNextSession = (index) => {
+            if (index >= trySessions.length) {
+                console.log("Kaikki WebXR-session epäonnistuivat");
+                return;
+            }
+            
+            const sessionType = trySessions[index];
+            console.log("Yritetään:", sessionType);
+            
+            navigator.xr.isSessionSupported(sessionType).then((supported) => {
                 if (supported) {
-                    console.log("immersive-ar tuettu, käynnistetään...");
-                    return navigator.xr.requestSession('immersive-ar', {
-                        optionalFeatures: ['local-floor', 'hand-tracking']
-                    });
+                    console.log(sessionType + " tuettu!");
+                    return navigator.xr.requestSession(sessionType);
                 } else {
-                    console.log("immersive-ar ei tuettu, yritetään immersive-vr...");
-                    return navigator.xr.requestSession('immersive-vr');
+                    console.log(sessionType + " ei tuettu");
+                    return tryNextSession(index + 1);
                 }
-            })
-            .then((session) => {
-                console.log("WebXR-sessio aloitettu onnistuneesti!");
-                renderer.xr.setSession(session);
-                document.getElementById('status').innerHTML = 
-                    '🎉 ONNISTUI! Olet nyt lapsen kehossa Vision Pro:lla!';
-                
-                session.addEventListener('end', () => {
-                    console.log("WebXR-sessio päättyi");
-                    location.reload();
-                });
-            })
-            .catch((error) => {
-                console.error("WebXR-sessio epäonnistui:", error);
-                document.getElementById('status').innerHTML = 
-                    '⚠️ WebXR ei käynnistynyt. Toimii 3D-tilana. Virhe: ' + error.message;
+            }).then((session) => {
+                if (session) {
+                    console.log("WebXR sessio aloitettu:", sessionType);
+                    renderer.xr.setSession(session);
+                    document.getElementById('status').innerHTML = 
+                        '🎉 WEBXR ONNISTUI! Olet VR-tilassa lapsen kehossa!';
+                        
+                    session.addEventListener('end', () => {
+                        location.reload();
+                    });
+                }
+            }).catch((error) => {
+                console.error(sessionType + " epäonnistui:", error);
+                tryNextSession(index + 1);
             });
+        };
+        
+        tryNextSession(0);
     } else {
-        document.getElementById('status').innerHTML = 
-            '❌ WebXR ei tuettu tässä selaimessa. Käytä Vision Pro + Safari.';
+        console.log("WebXR ei tuettu selaimessa");
     }
 }
 
@@ -205,3 +217,4 @@ window.addEventListener('resize', () => {
     </script>
 </body>
 </html>
+
