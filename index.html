@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Kokemus</title>
+    <title>Lapsi Avatar - Kokoaistuntema</title>
     <style>
         body { 
             margin: 0; 
@@ -35,9 +35,8 @@
         button:hover {
             background: #45a049;
         }
-        #enterButton {
-            z-index: 1000;
-            position: relative;
+        #vrButton {
+            background: #2196F3;
         }
     </style>
 </head>
@@ -46,33 +45,29 @@
         <h3>Lapsi Avatar</h3>
         <p>Paina "Astu kehoon" siirtyäksesi avatarin näkökulmaan</p>
         <button id="enterButton">Astu kehoon</button>
-        <p id="instructions" style="display:none; margin-top:10px;">
-            Liiku: WASD<br>
-            Katso: Hiiri/touch<br>
-            Poistu: ESC
-        </p>
+        <button id="vrButton" style="display:none;">VR-tila</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/controls/PointerLockControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/controls/VRButton.js"></script>
 
     <script>
         // PÄÄMUUTTUJAT
         let camera, scene, renderer;
         let avatar, firstPersonMode = false;
         let controls;
+        let head; // Avatarin pää, johon kamera kiinnitetään
 
         // ALUSTUS
         function init() {
-            console.log("Alustetaan sovellusta...");
-            
             // Luo scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
+            scene.background = new THREE.Color(0x87CEEB); // Taivaansininen
 
-            // Luo kamera
+            // Luo kamera - aluksi kolmannen persoonan näkymä
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 5);
+            camera.position.set(0, 2, 5); // Aluksi kaukana avatarista
 
             // Luo renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -80,125 +75,199 @@
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            // Valaistus
+            // LISÄÄ VALAISTUS
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
             scene.add(directionalLight);
 
-            // Maailma
+            // LISÄÄ MAailMA
             createWorld();
 
-            // Avatar
+            // LISÄÄ AVATAR
             avatar = createAvatar();
             scene.add(avatar);
 
-            // Tapahtumakäsittelijät - TÄRKEÄ: Varmista että nappi löytyy
-            const enterButton = document.getElementById('enterButton');
-            console.log("Nappi löytyy:", enterButton);
+            // TAPAHTUMAKÄSITTELIJÄT
+            document.getElementById('enterButton').addEventListener('click', switchToFirstPerson);
             
-            if (enterButton) {
-                enterButton.addEventListener('click', switchToFirstPerson);
-                console.log("Tapahtumankäsittelijä lisätty napille");
-            } else {
-                console.error("Nappia ei löydy!");
+            // VR-tuki
+            if ('xr' in navigator) {
+                document.getElementById('vrButton').style.display = 'block';
+                document.getElementById('vrButton').addEventListener('click', enterVR);
+                renderer.xr.enabled = true;
             }
 
+            // Ikkunan koon muutos
             window.addEventListener('resize', onWindowResize);
 
-            // Animaatio
+            // KÄYNNISTÄ ANIMAATIO
             animate();
         }
 
         function createWorld() {
-            // Lattia
-            const floorGeometry = new THREE.PlaneGeometry(50, 50);
-            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x90EE90 });
+            // LATTIA
+            const floorGeometry = new THREE.PlaneGeometry(100, 100);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x90EE90, // Vaaleanvihreä ruoho
+                roughness: 0.8 
+            });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
             scene.add(floor);
 
-            // Muutama esine
-            const box = new THREE.Mesh(
-                new THREE.BoxGeometry(2, 2, 2),
-                new THREE.MeshStandardMaterial({ color: 0xff0000 })
-            );
-            box.position.set(5, 1, 0);
-            scene.add(box);
+            // PUUTA
+            for (let i = 0; i < 20; i++) {
+                const tree = createTree();
+                tree.position.set(
+                    (Math.random() - 0.5) * 80,
+                    0,
+                    (Math.random() - 0.5) * 80
+                );
+                scene.add(tree);
+            }
 
-            const sphere = new THREE.Mesh(
-                new THREE.SphereGeometry(1.5, 32, 32),
-                new THREE.MeshStandardMaterial({ color: 0x0000ff })
-            );
-            sphere.position.set(-5, 1.5, 3);
-            scene.add(sphere);
+            // TALOJA
+            const house = createHouse();
+            house.position.set(10, 0, 10);
+            scene.add(house);
+
+            const house2 = createHouse();
+            house2.position.set(-15, 0, 8);
+            house2.rotation.y = Math.PI / 4;
+            scene.add(house2);
+        }
+
+        function createTree() {
+            const group = new THREE.Group();
+
+            // Puun runko
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 4);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 2;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            // Puun latvus
+            const leavesGeometry = new THREE.SphereGeometry(3);
+            const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leaves.position.y = 5;
+            leaves.castShadow = true;
+            group.add(leaves);
+
+            return group;
+        }
+
+        function createHouse() {
+            const group = new THREE.Group();
+
+            // Talon runko
+            const houseGeometry = new THREE.BoxGeometry(5, 4, 5);
+            const houseMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
+            const house = new THREE.Mesh(houseGeometry, houseMaterial);
+            house.position.y = 2;
+            house.castShadow = true;
+            house.receiveShadow = true;
+            group.add(house);
+
+            // Katto
+            const roofGeometry = new THREE.ConeGeometry(4, 3, 4);
+            const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.y = 5.5;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            group.add(roof);
+
+            return group;
         }
 
         function createAvatar() {
             const group = new THREE.Group();
 
-            // Vartalo
+            // VARTAIO (lapsen mittainen)
             const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8);
             const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x4169E1 });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = 0.6;
+            body.castShadow = true;
             group.add(body);
 
-            // Pää
+            // PÄÄ
             const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
             const headMaterial = new THREE.MeshStandardMaterial({ color: 0xFFEBCD });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.35;
-            group.add(head);
+            const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+            headMesh.position.y = 1.35;
+            headMesh.castShadow = true;
+            group.add(headMesh);
+
+            // SILMÄT
+            const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(0.1, 1.4, 0.2);
+            group.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(-0.1, 1.4, 0.2);
+            group.add(rightEye);
 
             return group;
         }
 
         function switchToFirstPerson() {
-            console.log("Astu kehoon - nappia painettu!");
-            if (firstPersonMode) {
-                console.log("Jo ensimmäisen persoonan tilassa");
-                return;
-            }
+            if (firstPersonMode) return;
             
             firstPersonMode = true;
-            console.log("Siirrytään ensimmäisen persoonan näkymään...");
             
-            // Siirrä kamera avatarin päähän
-            const head = new THREE.Group();
+            // LIOA AVATARIN PÄÄRYHMÄ KAMERALLE
+            head = new THREE.Group();
             head.position.set(0, 1.3, 0); // Lapsen silmien korkeus
             avatar.add(head);
+            
+            // SIIRRÄ KAMERA AVATARIN PÄÄHÄN
             head.add(camera);
-            camera.position.set(0, 0, 0);
+            camera.position.set(0, 0.1, 0); // Hieman silmien tasolla
             camera.rotation.set(0, 0, 0);
             
-            // Päivitä info
-            document.getElementById('enterButton').style.display = 'none';
-            document.getElementById('instructions').style.display = 'block';
+            // PIILOTA INFOLAATIKKO
+            document.getElementById('info').style.display = 'none';
             
-            // Hiiriohjaus
+            // LISÄÄ HIIRIONTROLI (katsonnan kääntely)
+            controls = new THREE.PointerLockControls(camera, document.body);
+            
+            // KLIKKAA RENDERÖINTIALUETTA OTTAAKSESI HIIREN HALTAAN
+            renderer.domElement.addEventListener('click', function() {
+                controls.lock();
+            });
+            
+            controls.addEventListener('lock', function() {
+                console.log('Hiiri otettu hallintaan - voit kääntää katsetta');
+            });
+            
+            controls.addEventListener('unlock', function() {
+                console.log('Hiiri vapautettu');
+            });
+            
+            console.log('Olet nyt avatarin sisällä! Liiku WASD-näppäimillä.');
+        }
+
+        async function enterVR() {
             try {
-                controls = new THREE.PointerLockControls(camera, renderer.domElement);
-                
-                renderer.domElement.addEventListener('click', function() {
-                    console.log("Klikattiin renderöintialuetta - otetaan hiiri hallintaan");
-                    controls.lock();
-                });
-                
-                controls.addEventListener('lock', function() {
-                    console.log('Hiiri otettu hallintaan - voit kääntää katsetta');
-                });
-                
-                controls.addEventListener('unlock', function() {
-                    console.log('Hiiri vapautettu');
-                });
+                const session = await navigator.xr.requestSession('immersive-vr');
+                await renderer.xr.setSession(session);
+                console.log('VR-tila aktivoitu');
             } catch (error) {
-                console.error("Virhe PointerLockControlsissa:", error);
+                console.log('VR ei saatavilla:', error);
+                alert('VR-tila ei ole saatavilla tässä selaimessa');
             }
-            
-            console.log('Olet nyt avatarin näkökulmassa!');
         }
 
         function onWindowResize() {
@@ -207,9 +276,10 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Liikkuminen
+        // LIIKKEEN KÄSITTELY
         const moveState = { forward: false, backward: false, left: false, right: false };
-        const moveSpeed = 5;
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
         
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
@@ -220,9 +290,6 @@
                 case 'KeyS': moveState.backward = true; break;
                 case 'KeyA': moveState.left = true; break;
                 case 'KeyD': moveState.right = true; break;
-                case 'Escape': 
-                    if (controls) controls.unlock();
-                    break;
             }
         }
 
@@ -236,29 +303,41 @@
         }
 
         function updateMovement(delta) {
-            if (!firstPersonMode || !controls || !controls.isLocked) return;
+            if (!firstPersonMode) return;
             
-            if (moveState.forward) controls.moveForward(moveSpeed * delta);
-            if (moveState.backward) controls.moveForward(-moveSpeed * delta);
-            if (moveState.left) controls.moveRight(-moveSpeed * delta);
-            if (moveState.right) controls.moveRight(moveSpeed * delta);
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
             
-            // Päivitä avatarin sijainti kameran mukaan
+            direction.z = Number(moveState.forward) - Number(moveState.backward);
+            direction.x = Number(moveState.right) - Number(moveState.left);
+            direction.normalize();
+            
+            if (moveState.forward || moveState.backward) velocity.z -= direction.z * 5.0 * delta;
+            if (moveState.left || moveState.right) velocity.x -= direction.x * 5.0 * delta;
+            
+            // LIIKUTA KOKO AVATARIA (mukaan lukien kamera joka on kiinni päässä)
+            controls.moveRight(-velocity.x * delta);
+            controls.moveForward(-velocity.z * delta);
+            
+            // Päivitä avatarin sijainti kameran perusteella
             avatar.position.copy(camera.position);
-            avatar.position.y -= 1.3;
+            avatar.position.y -= 1.3; // Siirrä takaisin maan tasalle
         }
 
-        // Animaatio
-        function animate() {
+        // PÄÄANIMAATIO
+        let previousTime = 0;
+        
+        function animate(currentTime = 0) {
             requestAnimationFrame(animate);
             
-            const delta = 0.016; // Noin 60 FPS
+            const delta = (currentTime - previousTime) * 0.001; // Sekunteina
+            previousTime = currentTime;
             
             if (firstPersonMode) {
                 updateMovement(delta);
             } else {
-                // Kolmannen persoonan kamera
-                const timer = Date.now() * 0.0001;
+                // Kolmannen persoonan kamera pyörii hitaasti avatarin ympäri
+                const timer = currentTime * 0.0001;
                 camera.position.x = Math.sin(timer) * 5;
                 camera.position.z = Math.cos(timer) * 5;
                 camera.lookAt(avatar.position);
@@ -267,11 +346,8 @@
             renderer.render(scene, camera);
         }
 
-        // Varmista että sivu on ladattu ennen kuin aloitetaan
-        window.addEventListener('load', function() {
-            console.log("Sivu ladattu, aloitetaan alustus...");
-            init();
-        });
+        // KÄYNNISTÄ SOVELLUS
+        init();
     </script>
 </body>
 </html>
