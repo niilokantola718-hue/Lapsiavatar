@@ -149,16 +149,43 @@ function enterAvatarBody() {
     }, 1000);
 }
 
+// ========== KORJATTU WEBXR OSA ==========
 function startWebXR() {
+    console.log("Yritetään käynnistää WebXR...");
+    
     if (navigator.xr) {
-        navigator.xr.requestSession('immersive-vr').then((session) => {
-            renderer.xr.setSession(session);
-            document.getElementById('status').innerHTML = '🎮 WebXR käynnissä!';
-        }).catch((error) => {
-            document.getElementById('status').innerHTML = '👁️ 3D-tila käynnissä! Käytä Vision Pro -laseja täyttä kokemusta varten.';
-        });
+        // TARKISTA ONKO immersive-ar TUETTU
+        navigator.xr.isSessionSupported('immersive-ar')
+            .then((supported) => {
+                if (supported) {
+                    console.log("immersive-ar tuettu, käynnistetään...");
+                    return navigator.xr.requestSession('immersive-ar', {
+                        optionalFeatures: ['local-floor', 'hand-tracking']
+                    });
+                } else {
+                    console.log("immersive-ar ei tuettu, yritetään immersive-vr...");
+                    return navigator.xr.requestSession('immersive-vr');
+                }
+            })
+            .then((session) => {
+                console.log("WebXR-sessio aloitettu onnistuneesti!");
+                renderer.xr.setSession(session);
+                document.getElementById('status').innerHTML = 
+                    '🎉 ONNISTUI! Olet nyt lapsen kehossa Vision Pro:lla!';
+                
+                session.addEventListener('end', () => {
+                    console.log("WebXR-sessio päättyi");
+                    location.reload();
+                });
+            })
+            .catch((error) => {
+                console.error("WebXR-sessio epäonnistui:", error);
+                document.getElementById('status').innerHTML = 
+                    '⚠️ WebXR ei käynnistynyt. Toimii 3D-tilana. Virhe: ' + error.message;
+            });
     } else {
-        document.getElementById('status').innerHTML = '👁️ 3D-tila käynnissä! Käytä Vision Pro + Safari.';
+        document.getElementById('status').innerHTML = 
+            '❌ WebXR ei tuettu tässä selaimessa. Käytä Vision Pro + Safari.';
     }
 }
 
@@ -178,4 +205,3 @@ window.addEventListener('resize', () => {
     </script>
 </body>
 </html>
-
