@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Korkeuden Hahmottaminen</title>
+    <title>Lapsi Avatar - AR-tila</title>
     <style>
         body { 
             margin: 0; 
             padding: 0; 
             overflow: hidden;
             font-family: Arial, sans-serif;
-            background: black;
+            background: transparent;
         }
         #info {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.8);
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -46,6 +46,13 @@
         #xrButton:hover {
             background: #0b7dda;
         }
+        #arButton {
+            background: #FF9800;
+            font-weight: bold;
+        }
+        #arButton:hover {
+            background: #F57C00;
+        }
         .feature-status {
             display: flex;
             justify-content: space-between;
@@ -74,7 +81,7 @@
             border: 2px solid #FF6B6B;
             display: none;
         }
-        #comparisonGuide {
+        #arInstructions {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -82,7 +89,7 @@
             color: white;
             padding: 15px;
             border-radius: 10px;
-            border: 2px solid #4CAF50;
+            border: 2px solid #FF9800;
             display: none;
             max-width: 300px;
         }
@@ -90,15 +97,20 @@
 </head>
 <body>
     <div id="info">
-        <h3>🧒 Lapsi Avatar - Korkeuden Hahmottaminen</h3>
+        <h3>🧒 Lapsi Avatar - AR-tila</h3>
         
         <div class="feature-status">
             <span>WebXR Device API:</span>
             <span id="status-xr" class="status-on">✅ Käytössä</span>
         </div>
+        <div class="feature-status">
+            <span>WebXR AR Module:</span>
+            <span id="status-ar" class="status-off">⏳ Tarkistetaan...</span>
+        </div>
         
         <button id="enterButton">👣 Astu kehoon (3D)</button>
-        <button id="xrButton">🚀 WebXR Lapsen Näkökulma</button>
+        <button id="xrButton">🚀 VR Lapsen Näkökulma</button>
+        <button id="arButton">🌍 AR-tila (Todellinen maailma)</button>
         
         <div id="debug">
             <div>Debug-tiedot:</div>
@@ -111,13 +123,12 @@
         <div>Olet nyt avatarin silmissä</div>
     </div>
 
-    <div id="comparisonGuide">
-        <h4>📐 Korkeusvertailut</h4>
-        <div>• Pöytä: 75cm (näet alle)</div>
-        <div>• Tuoli: 45cm (näet yli)</div>
-        <div>• Kynnys: 10cm (näet yli)</div>
-        <div>• Jakkara: 30cm (näet yli)</div>
-        <div>• Kirjahylly: 120cm (et näe yläosaa)</div>
+    <div id="arInstructions">
+        <h4>🌍 AR-tila</h4>
+        <div>• Liiku vapaasti ympäri</div>
+        <div>• Törmää virtuaaliesineisiin</div>
+        <div>• Vertaa korkeuttasi esineisiin</div>
+        <div>• Käytä käsiasentoja</div>
     </div>
 
     <!-- Three.js + WebXR -->
@@ -131,6 +142,7 @@
         let avatar, xrSession = null;
         let isInFirstPerson = false;
         let avatarHead;
+        let isInAR = false;
 
         // DEBUG-JÄRJESTELMÄ
         function debugLog(message) {
@@ -146,12 +158,16 @@
 
         // ALUSTUS
         async function init() {
-            debugLog("Alustetaan korkeuden hahmottamisen sovellus...");
+            debugLog("Alustetaan AR-sovellus...");
             
-            // Luo scene
+            // Luo scene - AR:ssa tausta on läpinäkyvä/reaalimaailma
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 15, 80);
+            
+            // AR-tilassa ei taustaväriä tai sumua, jotta näkee reaalimaailman
+            if (!isInAR) {
+                scene.background = new THREE.Color(0x87CEEB);
+                scene.fog = new THREE.Fog(0x87CEEB, 15, 80);
+            }
 
             // Luo kamera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
@@ -160,19 +176,25 @@
             // Luo renderer
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true,
-                powerPreference: "high-performance"
+                powerPreference: "high-performance",
+                alpha: true // Tärkeä AR:lle - läpinäkyvä tausta
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
+            
+            // AR:lle tärkeät asetukset
+            renderer.setClearColor(0x000000, 0); // Täysin läpinäkyvä tausta
+            renderer.autoClear = false; // Mahdollistaa reaalimaailman näkymisen
+            
             document.body.appendChild(renderer.domElement);
 
-            // Lisää valaistus
+            // Lisää valaistus AR:lle optimoitu
             setupLighting();
 
-            // Luo ympäristö korkeusvertailuineen
-            createWorldWithHeightComparisons();
+            // Luo virtuaaliesineet AR-ympäristöön
+            createARObjects();
 
             // Luo avatar
             createAvatar();
@@ -186,218 +208,134 @@
             // Käynnistä animaatio
             animate();
 
-            debugLog("Sovellus alustettu - korkeusvertailut saatavilla!");
+            debugLog("AR-sovellus alustettu!");
         }
 
         function setupLighting() {
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            // AR-tilassa käytetään vähemmän voimakasta valaistusta
+            // koska reaalimaailma tarjoaa oman valaistuksensa
+            const ambientLight = new THREE.AmbientLight(0xffffff, isInAR ? 0.4 : 0.7);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, isInAR ? 0.6 : 1.0);
             directionalLight.position.set(10, 20, 5);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
             scene.add(directionalLight);
         }
 
-        function createWorldWithHeightComparisons() {
-            // LATTIA (0cm)
-            const floorGeometry = new THREE.PlaneGeometry(100, 100);
-            const floorMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x90EE90,
-                roughness: 0.8
-            });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            // 👇 KORKEUSVERTAILUKOHTEITA
-
-            // 1. KYNNYKSET (10cm korkeat - lapsi näkee yli)
-            for (let i = -2; i <= 2; i++) {
-                const thresholdGeometry = new THREE.BoxGeometry(2, 0.1, 0.2);
-                const thresholdMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-                const threshold = new THREE.Mesh(thresholdGeometry, thresholdMaterial);
-                threshold.position.set(i * 8, 0.05, 15);
-                threshold.receiveShadow = true;
-                scene.add(threshold);
+        function createARObjects() {
+            // AR-tilassa luodaan vähemmän esineitä, jotka sopivat reaalimaailmaan
+            
+            // 👇 AR-SPESIFISET ESINEET
+            
+            // 1. INTERAKTIIVISET PALIKAT
+            const colors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7, 0xFFD93D, 0x6BCF7F, 0x4D96FF];
+            
+            // Suuret värikkäät palikat
+            for (let i = 0; i < 8; i++) {
+                const size = 0.3 + Math.random() * 0.4;
+                const geometry = new THREE.BoxGeometry(size, size, size);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: colors[i],
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                cube.position.set(
+                    (Math.random() - 0.5) * 6,
+                    size / 2,
+                    (Math.random() - 0.5) * 6
+                );
+                cube.castShadow = true;
+                cube.userData = { interactive: true, originalY: cube.position.y };
+                scene.add(cube);
             }
 
-            // 2. MATTO (2cm paksu)
-            const rugGeometry = new THREE.PlaneGeometry(6, 4);
-            const rugMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFF6B6B,
-                roughness: 0.9
+            // 2. KORKEUSVERTAILUESINEET
+            createHeightReferenceObjects();
+
+            // 3. ANIMAOITUJA ESINEITÄ
+            createAnimatedObjects();
+
+            debugLog("Luotiin " + scene.children.length + " AR-esinettä");
+        }
+
+        function createHeightReferenceObjects() {
+            // Pöytä (75cm)
+            const tableGeometry = new THREE.BoxGeometry(1.5, 0.75, 1);
+            const tableMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513,
+                transparent: true,
+                opacity: 0.8
             });
-            const rug = new THREE.Mesh(rugGeometry, rugMaterial);
-            rug.rotation.x = -Math.PI / 2;
-            rug.position.set(-5, 0.01, -2);
-            rug.receiveShadow = true;
-            scene.add(rug);
-
-            // 3. JAKKARA (30cm korkea - lapsi näkee yli)
-            const stoolGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 8);
-            const stoolMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-            const stool = new THREE.Mesh(stoolGeometry, stoolMaterial);
-            stool.position.set(8, 0.15, -3);
-            stool.castShadow = true;
-            scene.add(stool);
-
-            // 4. TUOLI (45cm korkea - lapsi näkee yli)
-            const chairGeometry = new THREE.BoxGeometry(0.8, 0.45, 0.8);
-            const chairMaterial = new THREE.MeshStandardMaterial({ color: 0xA0522D });
-            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
-            chair.position.set(-8, 0.225, 8);
-            chair.castShadow = true;
-            scene.add(chair);
-
-            // 5. PÖYTÄ (75cm korkea - lapsi näkee juuri ja juuri alle)
-            const tableGeometry = new THREE.BoxGeometry(3, 0.75, 2);
-            const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
             const table = new THREE.Mesh(tableGeometry, tableMaterial);
-            table.position.set(2, 0.375, 4);
+            table.position.set(2, 0.375, 2);
             table.castShadow = true;
             scene.add(table);
 
-            // 6. KIRJAHYLLY (120cm korkea - lapsi EI näe yläosaa)
-            const bookshelfGeometry = new THREE.BoxGeometry(4, 1.2, 1);
-            const bookshelfMaterial = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
-            const bookshelf = new THREE.Mesh(bookshelfGeometry, bookshelfMaterial);
-            bookshelf.position.set(-3, 0.6, -8);
-            bookshelf.castShadow = true;
-            scene.add(bookshelf);
-
-            // Kirjoja hyllyyn
-            const bookColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF];
-            for (let i = 0; i < 10; i++) {
-                const bookGeometry = new THREE.BoxGeometry(0.3, 0.2, 0.05);
-                const bookMaterial = new THREE.MeshStandardMaterial({ 
-                    color: bookColors[Math.floor(Math.random() * bookColors.length)]
-                });
-                const book = new THREE.Mesh(bookGeometry, bookMaterial);
-                book.position.set(
-                    -3 + (Math.random() - 0.5) * 3,
-                    0.2 + Math.random() * 1.0,
-                    -8.5 + Math.random() * 0.2
-                );
-                book.castShadow = true;
-                scene.add(book);
-            }
-
-            // 7. KEITTÖTASO (90cm korkea - sama kuin lapsen silmät)
-            const counterGeometry = new THREE.BoxGeometry(5, 0.9, 1);
-            const counterMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
-            const counter = new THREE.Mesh(counterGeometry, counterMaterial);
-            counter.position.set(0, 0.45, -15);
-            counter.castShadow = true;
-            scene.add(counter);
-
-            // 8. OVI (200cm korkea - valtava lapsesta katsottuna)
-            const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
-            const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            const door = new THREE.Mesh(doorGeometry, doorMaterial);
-            door.position.set(12, 1, 0);
-            door.castShadow = true;
-            scene.add(door);
-
-            // 9. LEIKKIKALUJA (lasten kokoisia)
-            createToys();
-
-            // 10. VISUAALINEN KORKEUSMITTAUS
-            createHeightMeasurementWall();
-
-            debugLog("Luotiin kattava korkeusvertailuympäristö");
-        }
-
-        function createToys() {
-            // Leluauto
-            const carGeometry = new THREE.BoxGeometry(0.4, 0.2, 0.8);
-            const carMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
-            const car = new THREE.Mesh(carGeometry, carMaterial);
-            car.position.set(5, 0.1, 12);
-            scene.add(car);
-
-            // Lelupallo
-            const toyBallGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const toyBallMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
-            const toyBall = new THREE.Mesh(toyBallGeometry, toyBallMaterial);
-            toyBall.position.set(6, 0.15, 12);
-            scene.add(toyBall);
-
-            // Lelunukke
-            const dollGroup = new THREE.Group();
-            const dollBodyGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8);
-            const dollBodyMaterial = new THREE.MeshStandardMaterial({ color: 0xFF69B4 });
-            const dollBody = new THREE.Mesh(dollBodyGeometry, dollBodyMaterial);
-            dollBody.position.y = 0.15;
-            dollGroup.add(dollBody);
-
-            const dollHeadGeometry = new THREE.SphereGeometry(0.1, 16, 16);
-            const dollHeadMaterial = new THREE.MeshStandardMaterial({ color: 0xFFEBCD });
-            const dollHead = new THREE.Mesh(dollHeadGeometry, dollHeadMaterial);
-            dollHead.position.y = 0.4;
-            dollGroup.add(dollHead);
-
-            dollGroup.position.set(7, 0, 12);
-            scene.add(dollGroup);
-        }
-
-        function createHeightMeasurementWall() {
-            // Seinä, jossa on korkeusmitta
-            const wallGeometry = new THREE.PlaneGeometry(3, 2.5);
-            const wallMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFFFFFF,
-                roughness: 0.7
+            // Tuoli (45cm)
+            const chairGeometry = new THREE.BoxGeometry(0.6, 0.45, 0.6);
+            const chairMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xA0522D,
+                transparent: true,
+                opacity: 0.8
             });
-            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-            wall.position.set(15, 1.25, 10);
-            wall.rotation.y = Math.PI;
-            scene.add(wall);
+            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
+            chair.position.set(-2, 0.225, 2);
+            chair.castShadow = true;
+            scene.add(chair);
 
-            // Korkeusviivat
-            const lineGroup = new THREE.Group();
-            
-            // Piirrä viivat 10cm välein
-            for (let height = 0; height <= 200; height += 10) {
-                const lineGeometry = new THREE.BoxGeometry(0.02, 0.005, 0.005);
-                const lineMaterial = new THREE.MeshStandardMaterial({ 
-                    color: height === 95 ? 0xFF0000 : (height % 50 === 0 ? 0x0000FF : 0x000000)
-                });
-                const line = new THREE.Mesh(lineGeometry, lineMaterial);
-                line.position.set(0, height / 100 - 1.25, 0.01);
-                lineGroup.add(line);
+            // Lapsen tuoli (30cm)
+            const childChairGeometry = new THREE.BoxGeometry(0.4, 0.3, 0.4);
+            const childChairMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xFFD700,
+                transparent: true,
+                opacity: 0.9
+            });
+            const childChair = new THREE.Mesh(childChairGeometry, childChairMaterial);
+            childChair.position.set(0, 0.15, -2);
+            childChair.castShadow = true;
+            scene.add(childChair);
+        }
 
-                // Lisää numerot 50cm välein
-                if (height % 50 === 0) {
-                    // Tässä voitaisiin lisätä teksti, mutta yksinkertaistetaan
-                    const numberMarkerGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.01);
-                    const numberMarkerMaterial = new THREE.MeshStandardMaterial({ color: 0x0000FF });
-                    const numberMarker = new THREE.Mesh(numberMarkerGeometry, numberMarkerMaterial);
-                    numberMarker.position.set(-0.1, height / 100 - 1.25, 0.01);
-                    lineGroup.add(numberMarker);
-                }
-            }
+        function createAnimatedObjects() {
+            // Keinuva pallo
+            const bouncingBallGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+            const bouncingBallMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xFF6B6B,
+                transparent: true,
+                opacity: 0.9
+            });
+            const bouncingBall = new THREE.Mesh(bouncingBallGeometry, bouncingBallMaterial);
+            bouncingBall.position.set(-3, 1, 0);
+            bouncingBall.castShadow = true;
+            bouncingBall.userData = { bounceSpeed: 2 + Math.random() * 2, bounceHeight: 0.5 };
+            scene.add(bouncingBall);
 
-            // Lapsen korkeusmerkki (punainen)
-            const childMarkerGeometry = new THREE.BoxGeometry(0.1, 0.02, 0.02);
-            const childMarkerMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
-            const childMarker = new THREE.Mesh(childMarkerGeometry, childMarkerMaterial);
-            childMarker.position.set(-0.15, 0.95 - 1.25, 0.01);
-            lineGroup.add(childMarker);
-
-            lineGroup.position.copy(wall.position);
-            lineGroup.rotation.copy(wall.rotation);
-            scene.add(lineGroup);
+            // Pyörivä kuutio
+            const spinningCubeGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+            const spinningCubeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4ECDC4,
+                transparent: true,
+                opacity: 0.9
+            });
+            const spinningCube = new THREE.Mesh(spinningCubeGeometry, spinningCubeMaterial);
+            spinningCube.position.set(3, 0.8, -1);
+            spinningCube.castShadow = true;
+            spinningCube.userData = { rotationSpeed: 0.02 };
+            scene.add(spinningCube);
         }
 
         function createAvatar() {
             const group = new THREE.Group();
 
-            // Lapsen vartalo
+            // Lapsen vartalo - AR:ssa hieman läpinäkyvä
             const bodyGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.8, 8);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x4169E1 });
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4169E1,
+                transparent: isInAR,
+                opacity: isInAR ? 0.7 : 1.0
+            });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = 0.4;
             body.castShadow = true;
@@ -405,7 +343,11 @@
 
             // Pää
             const headGeometry = new THREE.SphereGeometry(0.18, 16, 16);
-            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xFFEBCD });
+            const headMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xFFEBCD,
+                transparent: isInAR,
+                opacity: isInAR ? 0.7 : 1.0
+            });
             const headMesh = new THREE.Mesh(headGeometry, headMaterial);
             headMesh.position.y = 0.9;
             headMesh.castShadow = true;
@@ -413,28 +355,40 @@
 
             // Luo ryhmä kameran kiinnittämistä varten
             avatarHead = new THREE.Group();
-            avatarHead.position.set(0, 0.95, 0); // Lapsen silmien korkeus
+            avatarHead.position.set(0, 0.95, 0);
             group.add(avatarHead);
 
             avatar = group;
             scene.add(avatar);
             
-            debugLog("Avatar luotu - 95cm korkea lapsi");
+            debugLog("Avatar luotu - AR-optimoitu");
         }
 
         async function checkXRFeatures() {
+            debugLog("Tarkistetaan XR-ominaisuuksia...");
+
             if (!navigator.xr) {
                 debugLog("❌ WebXR API ei saatavilla");
                 updateStatus('xr', false);
+                updateStatus('ar', false);
                 return;
             }
 
             try {
+                // Tarkista VR-tuki
                 const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
                 updateStatus('xr', vrSupported);
                 document.getElementById('xrButton').style.display = vrSupported ? 'block' : 'none';
+                debugLog(`VR-tuki: ${vrSupported}`);
+
+                // Tarkista AR-tuki
+                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                updateStatus('ar', arSupported);
+                document.getElementById('arButton').style.display = arSupported ? 'block' : 'none';
+                debugLog(`AR-tuki: ${arSupported}`);
+
             } catch (error) {
-                debugLog(`WebXR-tarkistus epäonnistui: ${error.message}`);
+                debugLog(`XR-tarkistus epäonnistui: ${error.message}`);
             }
         }
 
@@ -448,7 +402,8 @@
 
         function setupEventHandlers() {
             document.getElementById('enterButton').addEventListener('click', switchToFirstPerson);
-            document.getElementById('xrButton').addEventListener('click', startXRSession);
+            document.getElementById('xrButton').addEventListener('click', () => startXRSession('immersive-vr'));
+            document.getElementById('arButton').addEventListener('click', () => startXRSession('immersive-ar'));
             window.addEventListener('resize', onWindowResize);
         }
 
@@ -456,19 +411,17 @@
             debugLog("Siirrytään avatarin näkökulmaan (3D)...");
             isInFirstPerson = true;
             
-            // Kiinnitä kamera avatarin päähän
             avatarHead.add(camera);
             camera.position.set(0, 0, 0);
             camera.rotation.set(0, 0, 0);
             
             document.getElementById('enterButton').style.display = 'none';
             document.getElementById('heightIndicator').style.display = 'block';
-            document.getElementById('comparisonGuide').style.display = 'block';
-            debugLog("Olet nyt lapsen näkökulmassa (95cm)!");
+            debugLog("Olet nyt lapsen näkökulmassa (3D)!");
         }
 
-        async function startXRSession() {
-            debugLog("Käynnistetään WebXR lapsen näkökulmassa...");
+        async function startXRSession(mode) {
+            debugLog(`Käynnistetään ${mode}...`);
             
             if (!navigator.xr) {
                 alert("WebXR ei saatavilla tässä selaimessa.");
@@ -476,46 +429,68 @@
             }
 
             try {
-                const session = await navigator.xr.requestSession('immersive-vr', {
-                    optionalFeatures: ['local-floor', 'bounded-floor'],
+                const sessionOptions = {
+                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
                     requiredFeatures: ['local-floor']
-                });
+                };
 
+                // AR-tilassa tarvitaan erilaisia ominaisuuksia
+                if (mode === 'immersive-ar') {
+                    sessionOptions.optionalFeatures.push('hit-test', 'dom-overlay');
+                    sessionOptions.requiredFeatures = ['local-floor', 'hit-test'];
+                }
+
+                const session = await navigator.xr.requestSession(mode, sessionOptions);
                 await renderer.xr.setSession(session);
                 
-                // Aseta lapsen korkeus WebXR:ään
+                // Aseta lapsen korkeus
                 try {
                     const referenceSpace = await renderer.xr.getReferenceSpace();
-                    const heightOffset = -0.7; // Lapsen korkeus (1.6m - 0.7m = 0.9m)
+                    const heightOffset = mode === 'immersive-ar' ? -0.65 : -0.7;
                     const transform = new XRRigidTransform({ y: heightOffset });
                     const offsetReferenceSpace = referenceSpace.getOffsetReferenceSpace(transform);
                     renderer.xr.setReferenceSpace(offsetReferenceSpace);
-                    debugLog("Lapsen korkeus asetettu WebXR:ään (-0.7m)");
+                    debugLog(`Lapsen korkeus asetettu (${heightOffset}m)`);
                 } catch (offsetError) {
                     debugLog("Korkeuden offset ei onnistunut: " + offsetError);
                 }
                 
                 xrSession = session;
                 isInFirstPerson = true;
+                isInAR = (mode === 'immersive-ar');
 
-                // Piilota napit ja näytä opasteet
+                // Päivitä näkymä AR-tilaan
+                if (isInAR) {
+                    scene.background = null;
+                    scene.fog = null;
+                    document.getElementById('arInstructions').style.display = 'block';
+                    debugLog("AR-tila aktivoitu - näet reaalimaailman");
+                }
+
                 document.getElementById('enterButton').style.display = 'none';
                 document.getElementById('xrButton').style.display = 'none';
+                document.getElementById('arButton').style.display = 'none';
                 document.getElementById('info').style.display = 'none';
                 document.getElementById('heightIndicator').style.display = 'block';
-                document.getElementById('comparisonGuide').style.display = 'block';
 
-                debugLog("✅ WebXR käynnistetty onnistuneesti!");
+                debugLog(`✅ ${mode} käynnistetty onnistuneesti!`);
 
                 session.addEventListener('end', () => {
                     debugLog("XR-sessio päättyi");
                     xrSession = null;
                     isInFirstPerson = false;
-                    document.getElementById('heightIndicator').style.display = 'none';
-                    document.getElementById('comparisonGuide').style.display = 'none';
-                    document.getElementById('info').style.display = 'block';
+                    isInAR = false;
                     
-                    // Irrota kamera avatarista WebXR-session päätyttyä
+                    // Palauta normaalitilat
+                    scene.background = new THREE.Color(0x87CEEB);
+                    scene.fog = new THREE.Fog(0x87CEEB, 15, 80);
+                    
+                    document.getElementById('heightIndicator').style.display = 'none';
+                    document.getElementById('arInstructions').style.display = 'none';
+                    document.getElementById('info').style.display = 'block';
+                    document.getElementById('xrButton').style.display = 'block';
+                    document.getElementById('arButton').style.display = 'block';
+                    
                     if (camera.parent) {
                         camera.parent.remove(camera);
                     }
@@ -523,8 +498,8 @@
                 });
 
             } catch (error) {
-                debugLog(`❌ WebXR sessio epäonnistui: ${error.message}`);
-                alert(`XR-sessio epäonnistui: ${error.message}`);
+                debugLog(`❌ ${mode} sessio epäonnistui: ${error.message}`);
+                alert(`${mode}-sessio epäonnistui: ${error.message}`);
             }
         }
 
@@ -535,15 +510,37 @@
         }
 
         function animate() {
-            renderer.setAnimationLoop(() => {
+            renderer.setAnimationLoop((timestamp) => {
+                // Päivitä animaatiot
+                updateAnimations(timestamp);
+                
                 // WebXR-tilassa: liikuta avataria kameran mukaan
                 if (isInFirstPerson && xrSession) {
                     avatar.position.copy(camera.position);
-                    avatar.position.y -= 0.7; // Lapsen korkeus offset
+                    avatar.position.y -= (isInAR ? 0.65 : 0.7);
                     avatar.rotation.copy(camera.rotation);
                 }
                 
                 renderer.render(scene, camera);
+            });
+        }
+
+        function updateAnimations(timestamp) {
+            // Animaatioiden päivitys
+            scene.children.forEach(child => {
+                if (child.userData) {
+                    // Pomppiva pallo
+                    if (child.userData.bounceSpeed) {
+                        const bounce = Math.sin(timestamp * 0.001 * child.userData.bounceSpeed) * child.userData.bounceHeight;
+                        child.position.y = child.userData.originalY + bounce;
+                    }
+                    
+                    // Pyörivä kuutio
+                    if (child.userData.rotationSpeed) {
+                        child.rotation.y += child.userData.rotationSpeed;
+                        child.rotation.x += child.userData.rotationSpeed * 0.5;
+                    }
+                }
             });
         }
 
@@ -552,4 +549,3 @@
     </script>
 </body>
 </html>
-
