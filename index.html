@@ -106,7 +106,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* POISTETAAN KAMERA-FEED KOSKA VISION PRO KÄYTTÄÄ OMA KAMERA */
         #ar-view {
             position: fixed;
             top: 0;
@@ -152,44 +151,39 @@
             display: none !important;
         }
 
-        /* Lapsimaiset animaatiot */
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-15px) scale(1.05); }
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(10px); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .floating {
-            animation: float 4s ease-in-out infinite;
-        }
-
-        .bouncing {
-            animation: bounce 2s ease-in-out infinite;
-        }
-
-        .pulsing {
-            animation: pulse 3s ease-in-out infinite;
-        }
-
-        /* Paranneltu avatar */
-        .avatar-container {
+        /* AVATAR KEHOON SIIRTYMINEN - UUDET TYYLIT */
+        .body-anchored-avatar {
             position: absolute;
-            width: 200px;
-            height: 250px;
             z-index: 600;
             display: none;
-            top: 50%;
+            pointer-events: none;
+        }
+
+        /* Pään avatar - näkyy peilinä tai itsestä katsottuna */
+        .head-avatar {
+            width: 120px;
+            height: 120px;
+            bottom: 100px;
+            right: 50px;
+            transform: scale(0.8);
+        }
+
+        /* Käden avatar - näkyy sivulta */
+        .hand-avatar {
+            width: 80px;
+            height: 80px;
+            bottom: 50px;
+            left: 30px;
+            transform: scale(0.6);
+        }
+
+        /* Kehon avatar - näkyy alhaalta päin katsottuna */
+        .body-avatar {
+            width: 150px;
+            height: 200px;
+            bottom: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%) scale(0.7);
         }
 
         .avatar {
@@ -200,168 +194,139 @@
 
         .avatar-head {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
             border-radius: 50%;
-            top: 20px;
-            left: 50px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            border: 4px solid white;
+            top: 0;
+            left: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 3px solid white;
         }
 
         .avatar-face {
             position: absolute;
-            width: 70px;
-            height: 60px;
-            top: 25px;
+            width: 50px;
+            height: 45px;
+            top: 20px;
             left: 15px;
         }
 
         .avatar-eye {
             position: absolute;
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             background: #333;
             border-radius: 50%;
-            top: 20px;
+            top: 15px;
         }
 
         .avatar-eye.left { 
-            left: 15px; 
+            left: 10px; 
             animation: blink 4s infinite;
         }
         .avatar-eye.right { 
-            left: 40px; 
+            left: 30px; 
             animation: blink 4s infinite 0.5s;
         }
 
         .avatar-mouth {
             position: absolute;
-            width: 30px;
-            height: 15px;
+            width: 20px;
+            height: 10px;
             background: #ff6b6b;
-            border-radius: 0 0 15px 15px;
-            top: 45px;
-            left: 20px;
+            border-radius: 0 0 10px 10px;
+            top: 35px;
+            left: 15px;
             animation: smile 6s infinite;
         }
 
         .avatar-body {
             position: absolute;
-            width: 120px;
-            height: 120px;
+            width: 90px;
+            height: 90px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
-            border-radius: 50px 50px 20px 20px;
-            top: 110px;
-            left: 40px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            border: 4px solid white;
+            border-radius: 35px 35px 15px 15px;
+            top: 70px;
+            left: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 3px solid white;
         }
 
         .avatar-arm {
             position: absolute;
-            width: 20px;
-            height: 60px;
+            width: 15px;
+            height: 45px;
             background: #44A08D;
-            border-radius: 10px;
-            top: 120px;
+            border-radius: 7px;
+            top: 75px;
         }
 
         .avatar-arm.left {
-            left: 25px;
+            left: 5px;
             transform-origin: top center;
             animation: wave 5s infinite;
         }
 
         .avatar-arm.right {
-            right: 25px;
+            right: 5px;
             transform-origin: top center;
             animation: wave 5s infinite 2.5s;
         }
 
         .avatar-leg {
             position: absolute;
-            width: 25px;
-            height: 70px;
+            width: 18px;
+            height: 50px;
             background: #44A08D;
-            border-radius: 12px;
-            top: 220px;
+            border-radius: 9px;
+            top: 150px;
         }
 
         .avatar-leg.left {
-            left: 55px;
+            left: 25px;
             animation: walk 3s infinite;
         }
 
         .avatar-leg.right {
-            right: 55px;
+            right: 25px;
             animation: walk 3s infinite 1.5s;
         }
 
         /* Animaatiot */
         @keyframes blink {
-            0%, 90%, 100% { height: 16px; }
+            0%, 90%, 100% { height: 12px; }
             95% { height: 2px; }
         }
 
         @keyframes smile {
             0%, 90%, 100% { 
-                border-radius: 0 0 15px 15px;
-                height: 15px;
+                border-radius: 0 0 10px 10px;
+                height: 10px;
             }
             95% { 
-                border-radius: 15px;
-                height: 8px;
+                border-radius: 10px;
+                height: 5px;
             }
         }
 
         @keyframes wave {
             0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-30deg); }
+            50% { transform: rotate(-25deg); }
         }
 
         @keyframes walk {
             0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(10deg); }
+            50% { transform: translateY(-5px) rotate(8deg); }
         }
 
-        .environment {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-3px) rotate(1deg); }
         }
 
-        .bubble {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .bubble:nth-child(1) {
-            width: 30px;
-            height: 30px;
-            top: 20%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .bubble:nth-child(2) {
-            width: 20px;
-            height: 20px;
-            top: 60%;
-            left: 80%;
-            animation-delay: 2s;
-        }
-
-        .bubble:nth-child(3) {
-            width: 40px;
-            height: 40px;
-            top: 80%;
-            left: 20%;
-            animation-delay: 4s;
+        .gentle-float {
+            animation: gentleFloat 4s ease-in-out infinite;
         }
 
         .debug-info {
@@ -379,14 +344,37 @@
     </style>
 </head>
 <body>
-    <!-- AR-näkymä - VISION PRO HOITAA KAMERAN ITSE -->
+    <!-- AR-näkymä - AVATAR KEHOON KIINNITETTYNÄ -->
     <div id="ar-view">
-        <div class="environment">
-            <div class="bubble"></div>
-            <div class="bubble"></div>
-            <div class="bubble"></div>
+        <!-- Pään avatar (näet itsesi peilikuvana) -->
+        <div class="body-anchored-avatar head-avatar gentle-float" id="head-avatar">
+            <div class="avatar">
+                <div class="avatar-head"></div>
+                <div class="avatar-face">
+                    <div class="avatar-eye left"></div>
+                    <div class="avatar-eye right"></div>
+                    <div class="avatar-mouth"></div>
+                </div>
+            </div>
         </div>
-        <div class="avatar-container floating" id="avatar-container">
+
+        <!-- Käden avatar (näet kätesi sijasta) -->
+        <div class="body-anchored-avatar hand-avatar gentle-float" id="hand-avatar">
+            <div class="avatar">
+                <div class="avatar-head"></div>
+                <div class="avatar-face">
+                    <div class="avatar-eye left"></div>
+                    <div class="avatar-eye right"></div>
+                    <div class="avatar-mouth"></div>
+                </div>
+                <div class="avatar-body"></div>
+                <div class="avatar-arm left"></div>
+                <div class="avatar-arm right"></div>
+            </div>
+        </div>
+
+        <!-- Kehon avatar (näet kehosi sijasta) -->
+        <div class="body-anchored-avatar body-avatar gentle-float" id="body-avatar">
             <div class="avatar">
                 <div class="avatar-head"></div>
                 <div class="avatar-face">
@@ -405,27 +393,27 @@
 
     <!-- UI container -->
     <div id="ui-container">
-        <h1 class="floating">👶 Lapsi Avatar AR</h1>
+        <h1>👶 Lapsi Avatar AR</h1>
         <div class="subtitle">
-            Kokeile elää lapsuutta uudestaan Vision Pro -laseilla!<br>
-            Avatar ilmestyy AR-ympäristöösi ja seuraa liikkeitäsi.
+            Koe olevasi lapsi uudestaan!<br>
+            Avatar tulee olemaan kehossasi - näet lapsen kädet ja kehon omiesi sijasta.
         </div>
         
-        <button id="ar-button">Käynnistä AR-Kokemus</button>
+        <button id="ar-button">Käynnistä Keho-Avatar</button>
         
         <div id="status">Tarkistetaan AR-tukea...</div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan AR-ympäristöä...</p>
+            <p>Alustetaan keho-avatar...</p>
         </div>
 
         <div class="info-panel">
             <h3>Miten toimii:</h3>
-            <p>1. Paina "Käynnistä AR-Kokemus" -painiketta</p>
-            <p>2. Salli kameran käyttö kun selain pyytää</p>
-            <p>3. Liiku ympäri ja nauti lapsuuden uudelleenkokemisesta!</p>
-            <p><strong>Vinkki:</strong> Vision Pro käyttää omaa kamerajärjestelmäänsä - älä huolehdi yliviivatuista kuvista!</p>
+            <p>1. Paina "Käynnistä Keho-Avatar"</p>
+            <p>2. Salli kameran käyttö</p>
+            <p>3. Katso alas ja ympärillesi - näet avatarin kehossasi!</p>
+            <p><strong>Huomio:</strong> Avatar on nyt kiinni kehossasi, ei keskellä huoneeta.</p>
         </div>
     </div>
 
@@ -435,7 +423,6 @@
     <script>
         // Pääkomponentit
         let xrSession = null;
-        let currentStream = null;
 
         // DOM-elementit
         const arView = document.getElementById('ar-view');
@@ -444,8 +431,12 @@
         const exitArButton = document.getElementById('exit-ar');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
-        const avatarContainer = document.getElementById('avatar-container');
         const debugInfo = document.getElementById('debug-info');
+        
+        // Avatarit kehoon
+        const headAvatar = document.getElementById('head-avatar');
+        const handAvatar = document.getElementById('hand-avatar');
+        const bodyAvatar = document.getElementById('body-avatar');
 
         // Päivitä status
         function updateStatus(message, isError = false) {
@@ -474,169 +465,172 @@
                 const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
                 
                 if (arSupported) {
-                    updateStatus('AR-tila tuettu! Voit käynnistää AR-kokemuksen.');
+                    updateStatus('AR-tila tuettu! Avatar tulee kehoosi.');
                     updateDebugInfo('immersive-ar tuettu');
                     return true;
                 } else {
-                    updateDebugInfo('immersive-ar ei tuettu, tarkistetaan immersive-vr...');
-                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                    if (vrSupported) {
-                        updateStatus('AR-tila ei saatavilla, mutta VR-tila on. Voidaan kokeilla sitä.');
-                        updateDebugInfo('immersive-vr tuettu');
-                        return 'vr';
-                    } else {
-                        updateStatus('Kumpaakaan XR-tilaa ei tuettu laitteessasi.', true);
-                        arButton.disabled = true;
-                        updateDebugInfo('Ei XR-tukea');
-                        return false;
-                    }
+                    updateStatus('AR-tila ei saatavilla laitteessasi.', true);
+                    arButton.disabled = true;
+                    updateDebugInfo('Ei AR-tukea');
+                    return false;
                 }
             } catch (error) {
                 console.error('XR-tuen tarkistus epäonnistui:', error);
-                updateStatus('Tekninen virhe XR-tuen tarkistuksessa.', true);
-                updateDebugInfo('XR-tarkistus virhe: ' + error.message);
+                updateStatus('Tekninen virhe AR-tuen tarkistuksessa.', true);
+                updateDebugInfo('AR-tarkistus virhe: ' + error.message);
                 arButton.disabled = true;
                 return false;
             }
         }
 
-        // Vision Pro AR - ei tarvita erillistä kameran käyttöoikeutta
-        async function startVisionProAR() {
+        // Käynnistä Body-AR kokemus
+        async function startBodyARExperience() {
             try {
-                updateStatus('Käynnistetään Vision Pro AR:ia...');
-                updateDebugInfo('Käynnistetään Vision Pro AR:ia');
+                loadingElement.style.display = 'block';
+                arButton.disabled = true;
+                updateStatus('Aloitetaan keho-avatar kokemus...');
+                updateDebugInfo('Aloitetaan Body AR');
+
+                // Yritä WebXR AR:aa ensin
+                await startBodyWebXR();
+
+            } catch (error) {
+                console.error('Keho-AR kokemuksen käynnistys epäonnistui:', error);
+                loadingElement.style.display = 'none';
+                arButton.disabled = false;
+                updateStatus('Keho-AR käynnistys epäonnistui: ' + error.message, true);
+                updateDebugInfo('Lopullinen virhe: ' + error.message);
+            }
+        }
+
+        // Body-WebXR AR
+        async function startBodyWebXR() {
+            try {
+                updateStatus('Kytketään avatar kehoosi...');
+                updateDebugInfo('Kytketään avatar kehoon');
                 
-                // Vision Pro käyttää omaa kamerajärjestelmäänsä
-                // Ei tarvita getUserMedia -kutsua
-                
-                // Testaa erilaisia session asetuksia Vision Pro:lle
-                const sessionOptions = [
-                    { 
-                        requiredFeatures: ['local'],
-                        optionalFeatures: ['dom-overlay', 'hit-test'] 
-                    },
-                    { 
-                        requiredFeatures: ['local'],
-                        optionalFeatures: ['dom-overlay'] 
-                    },
-                    { 
-                        requiredFeatures: ['viewer'],
-                        optionalFeatures: ['local'] 
-                    }
-                ];
+                const sessionOptions = {
+                    requiredFeatures: ['local'],
+                    optionalFeatures: ['dom-overlay']
+                };
 
-                let session;
-                let lastError;
-
-                for (const options of sessionOptions) {
-                    try {
-                        updateDebugInfo('Yritetään session optioilla: ' + JSON.stringify(options));
-                        session = await navigator.xr.requestSession('immersive-ar', options);
-                        break;
-                    } catch (error) {
-                        lastError = error;
-                        updateDebugInfo('Session epäonnistui: ' + error.message);
-                        continue;
-                    }
-                }
-
-                if (!session) {
-                    throw lastError || new Error('Kaikki session vaihtoehdot epäonnistuivat');
-                }
-
+                const session = await navigator.xr.requestSession('immersive-ar', sessionOptions);
                 xrSession = session;
                 updateDebugInfo('WebXR session saatu');
 
                 // Päivitä näkymä AR-tilaan
                 arView.style.display = 'block';
-                avatarContainer.style.display = 'block';
+                headAvatar.style.display = 'block';
+                handAvatar.style.display = 'block';
+                bodyAvatar.style.display = 'block';
                 uiContainer.classList.add('hidden');
                 exitArButton.style.display = 'block';
                 loadingElement.style.display = 'none';
+
+                // Aloita kehon liikkeiden seuraaminen
+                startBodyTracking();
 
                 // Liitä tapahtumankäsittelijät
                 session.addEventListener('end', onSessionEnded);
                 
-                updateStatus('Vision Pro AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
-                updateDebugInfo('Vision Pro AR aktiivinen');
-
-                // Aloita animaatio
-                startAvatarAnimation();
+                updateStatus('Keho-avatar aktiivinen! Katso alas nähdäksesi itsesi lapsena.');
+                updateDebugInfo('Body AR aktiivinen');
 
             } catch (error) {
-                console.error('Vision Pro AR epäonnistui:', error);
-                updateDebugInfo('Vision Pro AR virhe: ' + error.message);
+                console.error('Body WebXR AR epäonnistui:', error);
+                updateDebugInfo('Body WebXR virhe: ' + error.message);
                 
-                // Yritä perus AR:aa fallbackina
-                updateStatus('Vision Pro AR ei toimi, yritetään perus AR:aa...');
-                await startBasicAR();
+                // Yritä perus Body AR:aa fallbackina
+                updateStatus('WebXR ei toimi, yritetään perus keho-AR:aa...');
+                await startBasicBodyAR();
             }
         }
 
-        // Perus AR (fallback)
-        async function startBasicAR() {
+        // Perus Body AR (fallback)
+        async function startBasicBodyAR() {
             try {
-                updateStatus('Käynnistetään perus AR:ia...');
-                updateDebugInfo('Käynnistetään Basic AR:ia');
+                updateStatus('Käynnistetään perus keho-AR:ia...');
+                updateDebugInfo('Käynnistetään Basic Body AR');
                 
-                // Näytä avatar ilman WebXR:ää
+                // Näytä avatarit kehon sijaintiin ilman WebXR:ää
                 arView.style.display = 'block';
-                avatarContainer.style.display = 'block';
+                headAvatar.style.display = 'block';
+                handAvatar.style.display = 'block';
+                bodyAvatar.style.display = 'block';
                 uiContainer.classList.add('hidden');
                 exitArButton.style.display = 'block';
                 loadingElement.style.display = 'none';
 
-                // Aloita animaatio
-                startAvatarAnimation();
+                // Aloita kehon liikkeiden seuraaminen
+                startBodyTracking();
 
-                updateStatus('Perus AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
-                updateDebugInfo('Basic AR aktiivinen');
+                updateStatus('Keho-avatar aktiivinen! Liiku ja kato ympärillesi.');
+                updateDebugInfo('Basic Body AR aktiivinen');
 
             } catch (error) {
-                console.error('Perus AR epäonnistui:', error);
-                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Basic AR virhe: ' + error.message);
+                console.error('Perus Body AR epäonnistui:', error);
+                updateStatus('Keho-AR käynnistys epäonnistui: ' + error.message, true);
+                updateDebugInfo('Basic Body AR virhe: ' + error.message);
             }
         }
 
-        // Aloita avatar-animaatiot
-        function startAvatarAnimation() {
-            // Avatar aloittaa animaationsa automaattisesti CSS:n kautta
-            // Lisätään vielä satunnaisia liikkeitä
+        // Kehon liikkeiden seuraaminen
+        function startBodyTracking() {
+            updateDebugInfo('Aloitetaan kehon seuranta');
+            
+            // Hiiren/touch liikkeet avatarin liikuttamiseen
+            let mouseX = 0;
+            let mouseY = 0;
+            
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX / window.innerWidth;
+                mouseY = e.clientY / window.innerHeight;
+                updateAvatarPositions(mouseX, mouseY);
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    mouseX = e.touches[0].clientX / window.innerWidth;
+                    mouseY = e.touches[0].clientY / window.innerHeight;
+                    updateAvatarPositions(mouseX, mouseY);
+                }
+            });
+
+            // Pään vähäinen liike responsiivisuuden tunnetta varten
+            let headOffset = 0;
             setInterval(() => {
-                // Satunnainen pieni liike
-                const randomX = (Math.random() - 0.5) * 20;
-                const randomY = (Math.random() - 0.5) * 10;
-                avatarContainer.style.transform = `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px))`;
-            }, 3000);
+                headOffset = Math.sin(Date.now() * 0.002) * 5;
+                headAvatar.style.transform = `scale(0.8) translateX(${headOffset}px)`;
+            }, 50);
+
+            // Käden satunnaisia liikkeitä
+            setInterval(() => {
+                const handMove = Math.sin(Date.now() * 0.003) * 10;
+                handAvatar.style.transform = `scale(0.6) translateY(${handMove}px)`;
+            }, 100);
         }
 
-        // Käynnistä AR kokemus
-        async function startARExperience() {
-            try {
-                loadingElement.style.display = 'block';
-                arButton.disabled = true;
-                updateStatus('Aloitetaan AR-kokemus...');
-                updateDebugInfo('Aloitetaan AR-kokemus');
+        // Päivitä avatarien sijainnit kehossa
+        function updateAvatarPositions(x, y) {
+            // Pään avatar reagoi hieman liikkeisiin
+            const headX = (x - 0.5) * 10;
+            const headY = (y - 0.5) * 5;
+            headAvatar.style.transform = `scale(0.8) translate(${headX}px, ${headY}px)`;
 
-                // Yritä Vision Pro AR:aa ensin
-                await startVisionProAR();
+            // Käden avatar reagoi enemmän
+            const handX = (x - 0.5) * 20;
+            const handY = (y - 0.5) * 15;
+            handAvatar.style.transform = `scale(0.6) translate(${handX}px, ${handY}px)`;
 
-            } catch (error) {
-                console.error('AR-kokemuksen käynnistys epäonnistui:', error);
-                loadingElement.style.display = 'none';
-                arButton.disabled = false;
-                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Lopullinen virhe: ' + error.message);
-            }
+            // Kehon avatar pysyy suhteellisen paikallaan
+            const bodyY = (y - 0.5) * 8;
+            bodyAvatar.style.transform = `translateX(-50%) scale(0.7) translateY(${bodyY}px)`;
         }
 
         // Käsittele session päättyminen
         function onSessionEnded() {
             console.log('XR-sessio päättynyt');
             updateDebugInfo('Session päättynyt');
-            
-            // Palauta normaalitila
             resetToInitialState();
         }
 
@@ -652,53 +646,32 @@
         // Palauta alkutila
         function resetToInitialState() {
             arView.style.display = 'none';
-            avatarContainer.style.display = 'none';
+            headAvatar.style.display = 'none';
+            handAvatar.style.display = 'none';
+            bodyAvatar.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitArButton.style.display = 'none';
             loadingElement.style.display = 'none';
             arButton.disabled = false;
             
-            updateStatus('AR-sessio päättynyt. Voit käynnistää uudestaan.');
+            updateStatus('Keho-avatar sessio päättynyt. Voit käynnistää uudestaan.');
             updateDebugInfo('Alkutila palautettu');
         }
 
         // Alusta sovellus
         async function initializeApp() {
-            console.log('Alustetaan Lapsi Avatar AR -sovellusta...');
+            console.log('Alustetaan Keho-Avatar AR -sovellusta...');
             updateDebugInfo('Alustetaan...');
 
             // Tarkista AR-tuki
             const arSupport = await checkARSupport();
             
             if (arSupport) {
-                arButton.addEventListener('click', startARExperience);
+                arButton.addEventListener('click', startBodyARExperience);
                 exitArButton.addEventListener('click', endSession);
                 
-                // Lisää liikkeen tunnistus avatarille (hiirellä/kosketuksella)
-                document.addEventListener('mousemove', (e) => {
-                    if (avatarContainer.style.display !== 'none') {
-                        const x = (e.clientX / window.innerWidth - 0.5) * 30;
-                        const y = (e.clientY / window.innerHeight - 0.5) * 20;
-                        avatarContainer.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-                    }
-                });
-
-                // Lisää touch-liikkeet
-                document.addEventListener('touchmove', (e) => {
-                    if (avatarContainer.style.display !== 'none' && e.touches.length > 0) {
-                        const touch = e.touches[0];
-                        const x = (touch.clientX / window.innerWidth - 0.5) * 30;
-                        const y = (touch.clientY / window.innerHeight - 0.5) * 20;
-                        avatarContainer.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-                    }
-                });
-                
-                updateStatus('Valmis! Paina "Käynnistä AR-Kokemus" aloittaaksesi.');
+                updateStatus('Valmis! Paina "Käynnistä Keho-Avatar" kokeaksesi olevasi lapsi.');
                 updateDebugInfo('Valmis, odotetaan käyttäjää');
-            } else if (arSupport === 'vr') {
-                arButton.textContent = 'Käynnistä VR-Kokemus';
-                arButton.addEventListener('click', startARExperience);
-                exitArButton.addEventListener('click', endSession);
             }
         }
 
