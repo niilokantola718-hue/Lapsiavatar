@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Korjattu Camera AR</title>
+    <title>Lapsi Avatar - Vision Pro AR</title>
     <style>
         body { 
             margin: 0; 
@@ -38,8 +38,11 @@
         button:hover {
             transform: scale(1.05);
         }
-        #cameraButton {
+        #arButton {
             background: #9C27B0;
+        }
+        #testButton {
+            background: #2196F3;
         }
         .status-box {
             background: rgba(255,255,255,0.1);
@@ -48,7 +51,6 @@
             margin: 15px 0;
         }
         .success { color: #4CAF50; }
-        .warning { color: #FF9800; }
         .error { color: #f44336; }
         #heightIndicator {
             position: absolute;
@@ -61,31 +63,36 @@
             border: 2px solid #FF6B6B;
             display: none;
         }
-        #videoElement {
-            position: absolute;
+        #xrOverlay {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            background: black;
             display: none;
-            z-index: -1;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
         }
     </style>
 </head>
 <body>
     <div id="info">
-        <h2>🧒 Lapsi Avatar - Korjattu Camera AR</h2>
+        <h2>🧒 Lapsi Avatar - Vision Pro AR</h2>
         
         <div class="status-box">
-            <p><strong>Camera AR:</strong> Näet kameran kuvan taustalla ja virtuaaliesineet päällä</p>
-            <p><em>Varmista että sallit kameran käytön kun selain pyytää</em></p>
+            <p><strong>Vision Pro AR:</strong> Käytä WebXR:ää saadaksesi oikean AR-kokemuksen</p>
+            <p><em>Tämä piilottaa Safari-ikkunan ja näyttää kameran kuvan koko näytöllä</em></p>
         </div>
 
-        <button id="cameraButton">📷 Käynnistä Camera AR</button>
+        <button id="testButton">🔍 Testaa WebXR-tukea</button>
+        <button id="arButton">🚀 Käynnistä Vision Pro AR</button>
 
         <div class="status-box">
-            <div id="statusMessage">Valmis! Paina "Käynnistä Camera AR"</div>
+            <div id="statusMessage">Valmis! Testaa ensin WebXR-tuki.</div>
         </div>
     </div>
 
@@ -94,21 +101,21 @@
         <p>Olet nyt 4-vuotiaan lapsen näkökulmassa</p>
     </div>
 
-    <!-- Video-elementti kameran kuvan näyttämiseen -->
-    <video id="videoElement" playsinline></video>
+    <div id="xrOverlay">
+        <div>WebXR-sessio käynnissä... Sulje palataksesi normaalitilaan</div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script>
-        // PÄÄMUUTTUJAT
         let camera, scene, renderer, avatar;
-        let video, isCameraAR = false;
+        let xrSession = null;
 
-        // ALUSTUS
         async function init() {
             updateStatus("Alustetaan...");
             
             // Luo scene
             scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
             
             // Luo kamera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
@@ -117,10 +124,10 @@
             // Luo renderer
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true,
-                alpha: true // Tärkeä: läpinäkyvä tausta
+                alpha: true
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000000, 0); // Täysin läpinäkyvä tausta
+            renderer.xr.enabled = true; // WebXR käyttöön
             document.body.appendChild(renderer.domElement);
 
             // Valaistus
@@ -137,13 +144,16 @@
             // Luo avatar
             createAvatar();
 
+            // Tarkista WebXR-tuki
+            await checkXRSupport();
+
             // Tapahtumankäsittelijät
             setupEventHandlers();
 
             // Käynnistä animaatio
             animate();
 
-            updateStatus("Valmis! Paina 'Käynnistä Camera AR'");
+            updateStatus("Valmis! Testaa WebXR-tuki ensin.");
         }
 
         function createVirtualObjects() {
@@ -195,32 +205,18 @@
                 );
                 scene.add(toy);
             }
-
-            // Lattia-merkki
-            const floorMarker = new THREE.Mesh(
-                new THREE.PlaneGeometry(3, 3),
-                new THREE.MeshStandardMaterial({ 
-                    color: 0x00FF00,
-                    transparent: true,
-                    opacity: 0.3,
-                    side: THREE.DoubleSide
-                })
-            );
-            floorMarker.rotation.x = -Math.PI / 2;
-            floorMarker.position.set(0, 0.01, -3);
-            scene.add(floorMarker);
         }
 
         function createAvatar() {
             const group = new THREE.Group();
 
-            // Lapsen vartalo - erittäin läpinäkyvä
+            // Lapsen vartalo - läpinäkyvä
             const body = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.25, 0.25, 0.8, 8),
                 new THREE.MeshStandardMaterial({ 
                     color: 0x4169E1,
                     transparent: true,
-                    opacity: 0.1
+                    opacity: 0.3
                 })
             );
             body.position.y = 0.4;
@@ -232,7 +228,7 @@
                 new THREE.MeshStandardMaterial({ 
                     color: 0xFFEBCD,
                     transparent: true,
-                    opacity: 0.1
+                    opacity: 0.3
                 })
             );
             head.position.y = 0.9;
@@ -242,70 +238,167 @@
             scene.add(avatar);
         }
 
+        async function checkXRSupport() {
+            if (!navigator.xr) {
+                updateStatus("❌ WebXR API ei saatavilla", "error");
+                document.getElementById('arButton').style.display = 'none';
+                return;
+            }
+
+            try {
+                // Tarkista AR-tuki
+                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                if (arSupported) {
+                    updateStatus("✅ WebXR AR saatavilla!", "success");
+                    document.getElementById('arButton').style.display = 'inline-block';
+                } else {
+                    updateStatus("❌ WebXR AR ei saatavilla", "error");
+                    document.getElementById('arButton').style.display = 'none';
+                    
+                    // Tarkista VR-tuki fallbackina
+                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                    if (vrSupported) {
+                        updateStatus("✅ WebXR VR saatavilla fallbackina", "success");
+                        document.getElementById('arButton').style.display = 'inline-block';
+                        document.getElementById('arButton').textContent = '🚀 Käynnistä VR-tila';
+                    }
+                }
+            } catch (error) {
+                updateStatus(`❌ WebXR-tarkistus epäonnistui: ${error.message}`, "error");
+            }
+        }
+
         function setupEventHandlers() {
-            document.getElementById('cameraButton').addEventListener('click', startCameraAR);
+            document.getElementById('testButton').addEventListener('click', testXRSession);
+            document.getElementById('arButton').addEventListener('click', startXRSession);
             window.addEventListener('resize', onWindowResize);
         }
 
-        async function startCameraAR() {
-            updateStatus("Käynnistetään kameraa...");
-            
+        async function testXRSession() {
+            if (!navigator.xr) {
+                alert("WebXR ei saatavilla tässä selaimessa.");
+                return;
+            }
+
             try {
-                // Pyydä kameran käyttöoikeus
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment', // Käytä takakameraa
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
+                updateStatus("Testataan WebXR:ää...");
+                
+                // Testaa AR ensin
+                let sessionType = 'immersive-ar';
+                let supported = await navigator.xr.isSessionSupported('immersive-ar');
+                
+                if (!supported) {
+                    // Testaa VR fallbackina
+                    sessionType = 'immersive-vr';
+                    supported = await navigator.xr.isSessionSupported('immersive-vr');
+                }
+
+                if (supported) {
+                    const session = await navigator.xr.requestSession(sessionType, {
+                        requiredFeatures: ['local-floor']
+                    });
+                    
+                    alert(`✅ ${sessionType} TOIMII! Paina OK jatkaaksesi.`);
+                    await session.end();
+                    updateStatus(`✅ ${sessionType} toimii! Voit nyt käynnistä AR-tilan.`, "success");
+                } else {
+                    alert("❌ WebXR ei toimi tässä selaimessa.");
+                    updateStatus("❌ WebXR ei toimi", "error");
+                }
+            } catch (error) {
+                alert(`❌ WebXR-testi epäonnistui: ${error.message}`);
+                updateStatus(`❌ Testi epäonnistui: ${error.message}`, "error");
+            }
+        }
+
+        async function startXRSession() {
+            if (!navigator.xr) {
+                alert("WebXR ei saatavilla tässä selaimessa.");
+                return;
+            }
+
+            try {
+                updateStatus("Käynnistetään WebXR:ää...");
+                
+                // Yritä AR ensin, sitten VR
+                let sessionType = 'immersive-ar';
+                let supported = await navigator.xr.isSessionSupported('immersive-ar');
+                
+                if (!supported) {
+                    sessionType = 'immersive-vr';
+                    supported = await navigator.xr.isSessionSupported('immersive-vr');
+                }
+
+                if (!supported) {
+                    throw new Error("Ei WebXR-tukea");
+                }
+
+                const session = await navigator.xr.requestSession(sessionType, {
+                    requiredFeatures: ['local-floor'],
+                    optionalFeatures: ['dom-overlay', 'hit-test']
                 });
 
-                // Käytä video-elementtiä kameran kuvan näyttämiseen
-                video = document.getElementById('videoElement');
-                video.srcObject = stream;
-                video.playsInline = true;
+                await renderer.xr.setSession(session);
                 
-                video.onloadedmetadata = () => {
-                    video.play();
-                    video.style.display = 'block';
-                    
-                    // Siirry avatarin näkökulmaan
-                    const head = new THREE.Group();
-                    head.position.set(0, 0.95, 0); // Lapsen silmien korkeus
-                    avatar.add(head);
-                    head.add(camera);
-                    camera.position.set(0, 0, 0);
-                    
-                    // Päivitä näkymä
-                    document.getElementById('info').style.display = 'none';
-                    document.getElementById('heightIndicator').style.display = 'block';
-                    
-                    isCameraAR = true;
-                    updateStatus("Camera AR aktivoitu! Liiku ja vertaa korkeuttasi.", "success");
-                };
+                // Aseta lapsen korkeus
+                try {
+                    const referenceSpace = await renderer.xr.getReferenceSpace();
+                    const transform = new XRRigidTransform({ y: -0.7 });
+                    const offsetReferenceSpace = referenceSpace.getOffsetReferenceSpace(transform);
+                    renderer.xr.setReferenceSpace(offsetReferenceSpace);
+                } catch (e) {
+                    console.log("Korkeuden asetus ei onnistunut:", e);
+                }
+                
+                xrSession = session;
+
+                // Siirry avatarin näkökulmaan
+                const head = new THREE.Group();
+                head.position.set(0, 0.95, 0);
+                avatar.add(head);
+                head.add(camera);
+                camera.position.set(0, 0, 0);
+
+                // Päivitä näkymä - piilota Safari-ikkuna
+                document.getElementById('info').style.display = 'none';
+                document.getElementById('heightIndicator').style.display = 'block';
+                document.getElementById('xrOverlay').style.display = 'none';
+
+                updateStatus("WebXR aktivoitu! Olet lapsen näkökulmassa.", "success");
+
+                // Kuuntele session päättymistä
+                session.addEventListener('end', () => {
+                    xrSession = null;
+                    document.getElementById('info').style.display = 'block';
+                    document.getElementById('heightIndicator').style.display = 'none';
+                    if (camera.parent) camera.parent.remove(camera);
+                    camera.position.set(0, 1.6, 5);
+                    updateStatus("WebXR-sessio päättyi. Voit käynnistää uudelleen.", "success");
+                });
 
             } catch (error) {
-                updateStatus(`Kameran käyttö epäonnistui: ${error.message}`, "error");
-                alert("Kameran käyttöoikeus puuttuu. Salli kamera kun selain pyytää.");
+                updateStatus(`❌ WebXR epäonnistui: ${error.message}`, "error");
+                alert(`WebXR käynnistys epäonnistui: ${error.message}\n\nTarkista Safari-asetukset: Settings → Safari → Advanced → Experimental Features → WebXR Device API ON`);
             }
         }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth / window.innerHeight);
-            
-            if (video) {
-                video.style.width = '100%';
-                video.style.height = '100%';
-            }
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         function animate() {
-            requestAnimationFrame(animate);
-            
-            // Renderöi 3D-objektit läpinäkyvästi kameran kuvan päälle
-            renderer.render(scene, camera);
+            renderer.setAnimationLoop(() => {
+                if (xrSession) {
+                    // Liikuta avataria kameran mukana WebXR-tilassa
+                    avatar.position.copy(camera.position);
+                    avatar.position.y -= 0.7;
+                    avatar.rotation.copy(camera.rotation);
+                }
+                
+                renderer.render(scene, camera);
+            });
         }
 
         function updateStatus(message, type = "info") {
