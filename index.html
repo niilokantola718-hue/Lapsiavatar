@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Korkeudentunne</title>
+    <title>Lapsi Avatar - Korjattu WebXR Näkökulma</title>
     <style>
         body { 
             margin: 0; 
@@ -78,7 +78,7 @@
 </head>
 <body>
     <div id="info">
-        <h3>🧒 Lapsi Avatar - Korkeudentunne</h3>
+        <h3>🧒 Lapsi Avatar - Korjattu Näkökulma</h3>
         
         <div class="feature-status">
             <span>WebXR Device API:</span>
@@ -96,7 +96,7 @@
 
     <div id="heightIndicator">
         <h4>📏 Lapsen Korkeus: 95cm</h4>
-        <div>Näet maailman 4-vuotiaan lapsen silmin</div>
+        <div>Olet nyt avatarin silmissä</div>
     </div>
 
     <!-- Three.js + WebXR -->
@@ -108,7 +108,8 @@
         // PÄÄMUUTTUJAT
         let camera, scene, renderer;
         let avatar, xrSession = null;
-        let heightIndicator, isInImmersiveMode = false;
+        let isInFirstPerson = false;
+        let avatarHead; // Viite avatarin päähän
 
         // DEBUG-JÄRJESTELMÄ
         function debugLog(message) {
@@ -124,40 +125,34 @@
 
         // ALUSTUS
         async function init() {
-            debugLog("Alustetaan lapsen näkökulma WebXR-sovellus...");
+            debugLog("Alustetaan korjattu WebXR-sovellus...");
             
             // Luo scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 10, 100);
 
-            // Luo kamera - ALUSTA LASTEN KORKEUS
+            // Luo kamera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
-            camera.position.set(0, 0.95, 5); // 👈 Lapsen silmien korkeus ~95cm
+            camera.position.set(0, 1.6, 5); // Aluksi kolmannen persoonan kamera
 
             // Luo renderer
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true,
-                alpha: true,
                 powerPreference: "high-performance"
             });
-            renderer.setSize(window.innerWidth / window.innerHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
 
             // Lisää valaistus
             setupLighting();
 
-            // Luo ympäristö LASTEN KORKEUDEN hahmottamiseksi
+            // Luo ympäristö
             createWorldWithHeightReferences();
 
             // Luo avatar
             createAvatar();
-
-            // Alusta korkeusmittari
-            heightIndicator = document.getElementById('heightIndicator');
 
             // Tarkista WebXR-ominaisuudet
             await checkXRFeatures();
@@ -168,7 +163,7 @@
             // Käynnistä animaatio
             animate();
 
-            debugLog("Sovellus alustettu - Lapsen näkökulma aktivoitu!");
+            debugLog("Sovellus alustettu!");
         }
 
         function setupLighting() {
@@ -193,9 +188,7 @@
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // 👇 LUO KORKEUSVERTAILUKOHTIA
-
-            // 1. PÖYTÄ (n. 75cm korkea - lapsi näkee juuri ja juuri alle)
+            // Pöytä vertailukohtana
             const tableGeometry = new THREE.BoxGeometry(3, 0.75, 2);
             const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
             const table = new THREE.Mesh(tableGeometry, tableMaterial);
@@ -203,95 +196,26 @@
             table.castShadow = true;
             scene.add(table);
 
-            // 2. TUOLI (n. 45cm korkea - lapsi näkee yli)
-            const chairGeometry = new THREE.BoxGeometry(1, 0.45, 1);
-            const chairMaterial = new THREE.MeshStandardMaterial({ color: 0xA0522D });
-            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
-            chair.position.set(4, 0.225, 4);
-            chair.castShadow = true;
-            scene.add(chair);
-
-            // 3. HEIJASTUS (peilimaalattu seinä)
-            const mirrorGeometry = new THREE.PlaneGeometry(8, 4);
-            const mirrorMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x444444,
-                metalness: 0.9,
-                roughness: 0.1
-            });
-            const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-            mirror.position.set(-8, 2, 8);
-            mirror.rotation.y = Math.PI / 6;
-            scene.add(mirror);
-
-            // 4. KORKEUSMITTARI VISUAALISESTI
-            createHeightScale();
-
-            // 5. ISOJA ESINEITÄ (tuntuvat vielä isommilta lapsesta)
+            // Muut esineet
             const colors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7];
             
-            // ISO PALLO
-            const bigBallGeometry = new THREE.SphereGeometry(1.2, 16, 16);
-            const bigBallMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFF6B6B,
-                roughness: 0.3
-            });
-            const bigBall = new THREE.Mesh(bigBallGeometry, bigBallMaterial);
-            bigBall.position.set(-3, 1.2, 3);
-            bigBall.castShadow = true;
-            scene.add(bigBall);
-
-            // LEIKKITUOLI (lasten kokoinen)
-            const toyChairGeometry = new THREE.BoxGeometry(0.6, 0.3, 0.6);
-            const toyChairMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-            const toyChair = new THREE.Mesh(toyChairGeometry, toyChairMaterial);
-            toyChair.position.set(6, 0.15, 2);
-            scene.add(toyChair);
-
-            debugLog("Luotiin korkeusvertailukohtia lapsen näkökulmaan");
-        }
-
-        function createHeightScale() {
-            // Luo visuaalinen korkeusmittari
-            const scaleGroup = new THREE.Group();
-            
-            // Mittapuut
-            for (let i = 0; i <= 200; i += 10) {
-                const height = i / 100; // metreinä
-                const markGeometry = new THREE.BoxGeometry(0.02, 0.01, 0.02);
-                const markMaterial = new THREE.MeshStandardMaterial({ 
-                    color: height === 0.95 ? 0xFF0000 : 0x000000 
+            for (let i = 0; i < 10; i++) {
+                const geometry = new THREE.SphereGeometry(0.5 + Math.random(), 16, 16);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    roughness: 0.3
                 });
-                const mark = new THREE.Mesh(markGeometry, markMaterial);
-                mark.position.set(8, height, 0);
-                scaleGroup.add(mark);
-
-                // Isommat merkit 50cm välein
-                if (i % 50 === 0) {
-                    const bigMarkGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.05);
-                    const bigMarkMaterial = new THREE.MeshStandardMaterial({ 
-                        color: 0x0000FF 
-                    });
-                    const bigMark = new THREE.Mesh(bigMarkGeometry, bigMarkMaterial);
-                    bigMark.position.set(8, height, 0);
-                    scaleGroup.add(bigMark);
-                }
+                const ball = new THREE.Mesh(geometry, material);
+                ball.position.set(
+                    (Math.random() - 0.5) * 30,
+                    0.5 + Math.random() * 2,
+                    (Math.random() - 0.5) * 30
+                );
+                ball.castShadow = true;
+                scene.add(ball);
             }
 
-            // Lapsen korkeusmerkki (punainen)
-            const childMarkGeometry = new THREE.BoxGeometry(0.1, 0.02, 0.1);
-            const childMarkMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
-            const childMark = new THREE.Mesh(childMarkGeometry, childMarkMaterial);
-            childMark.position.set(8, 0.95, 0);
-            scaleGroup.add(childMark);
-
-            // Aikuisen korkeusmerkki (sininen)
-            const adultMarkGeometry = new THREE.BoxGeometry(0.1, 0.02, 0.1);
-            const adultMarkMaterial = new THREE.MeshStandardMaterial({ color: 0x0000FF });
-            const adultMark = new THREE.Mesh(adultMarkGeometry, adultMarkMaterial);
-            adultMark.position.set(8, 1.65, 0);
-            scaleGroup.add(adultMark);
-
-            scene.add(scaleGroup);
+            debugLog("Maailma luotu onnistuneesti");
         }
 
         function createAvatar() {
@@ -305,23 +229,26 @@
             body.castShadow = true;
             group.add(body);
 
-            // Pää
+            // Pää (tähän kamera liitetään)
             const headGeometry = new THREE.SphereGeometry(0.18, 16, 16);
             const headMaterial = new THREE.MeshStandardMaterial({ color: 0xFFEBCD });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 0.9;
-            head.castShadow = true;
-            group.add(head);
+            const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+            headMesh.position.y = 0.9;
+            headMesh.castShadow = true;
+            group.add(headMesh);
+
+            // Luo ryhmä kameran kiinnittämistä varten
+            avatarHead = new THREE.Group();
+            avatarHead.position.set(0, 0.95, 0); // Lapsen silmien korkeus
+            group.add(avatarHead);
 
             avatar = group;
             scene.add(avatar);
             
-            debugLog("Luotiin lapsen kokoinen avatar (95cm)");
+            debugLog("Avatar luotu - pääryhmä valmiina kameran kiinnitykseen");
         }
 
         async function checkXRFeatures() {
-            debugLog("Tarkistetaan WebXR-ominaisuuksia...");
-
             if (!navigator.xr) {
                 debugLog("❌ WebXR API ei saatavilla");
                 updateStatus('xr', false);
@@ -331,10 +258,7 @@
             try {
                 const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
                 updateStatus('xr', vrSupported);
-                debugLog(`VR-tuki: ${vrSupported}`);
-
                 document.getElementById('xrButton').style.display = vrSupported ? 'block' : 'none';
-
             } catch (error) {
                 debugLog(`WebXR-tarkistus epäonnistui: ${error.message}`);
             }
@@ -355,22 +279,21 @@
         }
 
         function switchToFirstPerson() {
-            debugLog("Siirrytään avatarin näkökulmaan...");
-            isInImmersiveMode = true;
+            debugLog("Siirrytään avatarin näkökulmaan (3D)...");
+            isInFirstPerson = true;
             
-            const head = new THREE.Group();
-            head.position.set(0, 0.95, 0); // 👈 Lapsen silmien korkeus
-            avatar.add(head);
-            head.add(camera);
+            // Kiinnitä kamera avatarin päähän
+            avatarHead.add(camera);
             camera.position.set(0, 0, 0);
+            camera.rotation.set(0, 0, 0);
             
             document.getElementById('enterButton').style.display = 'none';
-            heightIndicator.style.display = 'block';
-            debugLog("Olet nyt lapsen näkökulmassa (95cm)!");
+            document.getElementById('heightIndicator').style.display = 'block';
+            debugLog("Olet nyt avatarin näkökulmassa (3D)!");
         }
 
         async function startXRSession() {
-            debugLog("Käynnistetään WebXR lapsen näkökulmassa...");
+            debugLog("Käynnistetään WebXR...");
             
             if (!navigator.xr) {
                 alert("WebXR ei saatavilla tässä selaimessa.");
@@ -379,16 +302,16 @@
 
             try {
                 const session = await navigator.xr.requestSession('immersive-vr', {
-                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
+                    optionalFeatures: ['local-floor', 'bounded-floor'],
                     requiredFeatures: ['local-floor']
                 });
 
                 await renderer.xr.setSession(session);
                 
-                // Aseta lapsen korkeus WebXR:ään
+                // 🔥 TÄRKEIN KORJAUS: Aseta lapsen korkeus
                 try {
                     const referenceSpace = await renderer.xr.getReferenceSpace();
-                    const heightOffset = -0.7; // 👈 Laskee 70cm alas (aikuisen -> lapsen)
+                    const heightOffset = -0.7; // Lapsen korkeus (1.6m - 0.7m = 0.9m)
                     const transform = new XRRigidTransform({ y: heightOffset });
                     const offsetReferenceSpace = referenceSpace.getOffsetReferenceSpace(transform);
                     renderer.xr.setReferenceSpace(offsetReferenceSpace);
@@ -398,21 +321,29 @@
                 }
                 
                 xrSession = session;
-                isInImmersiveMode = true;
+                isInFirstPerson = true;
 
+                // Piilota napit ja näytä korkeusilmaisin
                 document.getElementById('enterButton').style.display = 'none';
                 document.getElementById('xrButton').style.display = 'none';
                 document.getElementById('info').style.display = 'none';
-                heightIndicator.style.display = 'block';
+                document.getElementById('heightIndicator').style.display = 'block';
 
-                debugLog("✅ WebXR lapsen näkökulmassa käynnistetty!");
+                debugLog("✅ WebXR käynnistetty onnistuneesti!");
 
+                // WebXR-tilassa avatar seuraa kameraa
                 session.addEventListener('end', () => {
                     debugLog("XR-sessio päättyi");
                     xrSession = null;
-                    isInImmersiveMode = false;
-                    heightIndicator.style.display = 'none';
+                    isInFirstPerson = false;
+                    document.getElementById('heightIndicator').style.display = 'none';
                     document.getElementById('info').style.display = 'block';
+                    
+                    // Irrota kamera avatarista WebXR-session päätyttyä
+                    if (camera.parent) {
+                        camera.parent.remove(camera);
+                    }
+                    camera.position.set(0, 1.6, 5); // Palauta kameran sijainti
                 });
 
             } catch (error) {
@@ -429,10 +360,18 @@
 
         function animate() {
             renderer.setAnimationLoop(() => {
-                // Päivitä korkeusmittarin sijainti immersive-tilassa
-                if (isInImmersiveMode && heightIndicator) {
-                    // Voit lisätä dynaamisen korkeuden seurannan tähän
+                // WebXR-tilassa: liikuta avataria kameran mukaan
+                if (isInFirstPerson && xrSession) {
+                    // Kopioi avatarin sijainti kameran sijainnista (lapsen korkeus)
+                    avatar.position.copy(camera.position);
+                    avatar.position.y -= 0.7; // Lapsen korkeus offset
+                    
+                    // Kopioi avatarin rotaatio kameran rotaatiosta
+                    avatar.rotation.copy(camera.rotation);
                 }
+                
+                // 3D-tilassa (ei-WebXR): avatar liikkuu kameran mukana automaattisesti
+                // koska kamera on kiinni avatarHead-ryhmässä
                 
                 renderer.render(scene, camera);
             });
