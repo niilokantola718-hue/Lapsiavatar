@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Lapsi Avatar AR - Vision Pro</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Lapsi Avatar - Vision Pro</title>
     <style>
         * {
             margin: 0;
@@ -13,96 +14,88 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             overflow: hidden;
             width: 100vw;
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        #ar-button {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 30px;
-            background: linear-gradient(45deg, #007AFF, #5856D6);
+        #container {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        #xr-button {
+            padding: 20px 40px;
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
             color: white;
             border: none;
-            border-radius: 20px;
-            font-size: 18px;
+            border-radius: 30px;
+            font-size: 1.5em;
             font-weight: 600;
             cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        #xr-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
+        }
+
+        #xr-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #fallback-button {
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
 
-        #ar-button:hover {
-            transform: translateX(-50%) scale(1.05);
-            box-shadow: 0 12px 25px rgba(0, 122, 255, 0.4);
+        #fallback-button:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
-        #ar-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: translateX(-50%) scale(1);
-        }
-
-        #ar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
+        .button-group {
+            display: flex;
             flex-direction: column;
-            z-index: 999;
-            backdrop-filter: blur(10px);
+            gap: 15px;
+            align-items: center;
+            margin-top: 30px;
         }
 
-        #exit-ar {
-            position: fixed;
-            top: 30px;
-            right: 30px;
-            padding: 12px 24px;
-            background: #FF3B30;
-            color: white;
-            border: none;
-            border-radius: 15px;
-            font-size: 16px;
-            cursor: pointer;
-            z-index: 1001;
-        }
-
-        .status-message {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #007AFF;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #status {
+            margin-top: 20px;
+            font-size: 1.1em;
+            opacity: 0.8;
         }
 
         #canvas-container {
@@ -111,53 +104,93 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1;
+            z-index: -1;
         }
 
-        #info-panel {
-            position: fixed;
-            top: 30px;
-            left: 30px;
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .info-box {
             background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 15px;
-            font-size: 14px;
-            max-width: 300px;
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 30px;
             backdrop-filter: blur(10px);
+        }
+
+        .hidden {
             display: none;
         }
 
-        /* Lapsimaisen avatarin tyylit */
-        .child-like {
-            animation: float 3s ease-in-out infinite;
+        .loading {
+            margin: 20px 0;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #FF6B6B;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Lapsimaisen ilmeen animaatiot */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        .child-like {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .wiggle {
+            animation: wiggle 0.5s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="xr-canvas"></canvas>
-    </div>
+    <div id="container">
+        <h1 class="child-like">👶 Lapsi Avatar</h1>
+        <div class="subtitle">Koe lapsuus uudestaan Vision Pro -laseilla</div>
+        
+        <div class="button-group">
+            <button id="xr-button">Käynnistä VR-Avatar</button>
+            <button id="fallback-button">3D-esikatselu</button>
+        </div>
 
-    <button id="ar-button">Käynnistä AR-Avatar</button>
-    
-    <div id="ar-overlay">
-        <div class="status-message">AR-avatar aktiivinen! Katso ympärillesi.</div>
-        <div class="loading" id="loading">
+        <div id="status"></div>
+
+        <div class="loading hidden" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan AR-ympäristöä...</p>
+            <p>Alustetaan VR-ympäristöä...</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Ohjeet:</h3>
+            <p>1. Paina "Käynnistä VR-Avatar"</p>
+            <p>2. Salli kameran käyttö kun selain pyytää</p>
+            <p>3. Nauti lapsuuden uudelleen kokemisesta!</p>
         </div>
     </div>
 
-    <button id="exit-ar" style="display: none;">Lopeta AR</button>
-    
-    <div id="info-panel">
-        <h3>Lapsi Avatar AR</h3>
-        <p>Kokeile elää lapsuutta uudestaan!</p>
+    <div id="canvas-container">
+        <canvas id="xr-canvas"></canvas>
     </div>
 
     <script>
@@ -166,114 +199,45 @@
         let xrReferenceSpace = null;
         let gl = null;
         let animationFrameId = null;
+        let isInXRSession = false;
 
         // DOM-elementit
         const canvas = document.getElementById('xr-canvas');
-        const arButton = document.getElementById('ar-button');
-        const arOverlay = document.getElementById('ar-overlay');
-        const exitArButton = document.getElementById('exit-ar');
+        const xrButton = document.getElementById('xr-button');
+        const fallbackButton = document.getElementById('fallback-button');
+        const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
-        const infoPanel = document.getElementById('info-panel');
+        const container = document.getElementById('container');
 
-        // Avatarin geometria (yksinkertainen lapsimainen hahmo)
-        const avatarVertices = new Float32Array([
-            // Pää (pallo - yksinkertaistettu)
-            0.0, 0.3, 0.0,
-            0.1, 0.25, 0.0,
-            0.0, 0.25, 0.1,
-            -0.1, 0.25, 0.0,
-            0.0, 0.25, -0.1,
-            
-            // Vartalo
-            0.0, 0.25, 0.0,
-            0.0, -0.1, 0.0,
-            
-            // Kädet
-            -0.2, 0.15, 0.0,
-            -0.2, -0.05, 0.0,
-            0.2, 0.15, 0.0,
-            0.2, -0.05, 0.0,
-            
-            // Jalat
-            0.0, -0.1, 0.0,
-            -0.1, -0.4, 0.0,
-            0.0, -0.1, 0.0,
-            0.1, -0.4, 0.0
-        ]);
+        // Päivitä status
+        function updateStatus(message) {
+            statusElement.textContent = message;
+            console.log(message);
+        }
 
-        // Värit (värikäs lapsimainen palette)
-        const avatarColors = new Float32Array([
-            // Pää (vaaleanpunainen)
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            
-            // Vartalo (sininen)
-            0.2, 0.5, 1.0,
-            0.2, 0.5, 1.0,
-            
-            // Kädet (vaaleanpunainen)
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            1.0, 0.8, 0.9,
-            
-            // Jalat (sininen)
-            0.2, 0.5, 1.0,
-            0.2, 0.5, 1.0,
-            0.2, 0.5, 1.0,
-            0.2, 0.5, 1.0
-        ]);
-
-        // Shaderit
-        const vertexShaderSource = `#version 300 es
-            in vec3 aVertexPosition;
-            in vec3 aVertexColor;
-            uniform mat4 uModelViewMatrix;
-            uniform mat4 uProjectionMatrix;
-            out vec3 vColor;
-            
-            void main(void) {
-                gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-                gl_PointSize = 8.0;
-                vColor = aVertexColor;
-            }
-        `;
-
-        const fragmentShaderSource = `#version 300 es
-            precision highp float;
-            in vec3 vColor;
-            out vec4 fragColor;
-            
-            void main(void) {
-                fragColor = vec4(vColor, 1.0);
-            }
-        `;
-
-        // Tarkista AR-tuki
-        async function checkARSupport() {
+        // Tarkista XR-tuki
+        async function checkXRSupport() {
             if (!navigator.xr) {
-                arButton.textContent = 'WebXR ei tuettu';
-                arButton.disabled = true;
+                updateStatus('WebXR ei ole saatavilla selaimessasi');
+                xrButton.disabled = true;
                 return false;
             }
 
             try {
-                const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                if (!supported) {
-                    arButton.textContent = 'AR ei tuettu laitteessa';
-                    arButton.disabled = true;
+                // Tarkista VR-tuki (Vision Pro käyttää tätä)
+                const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                
+                if (vrSupported) {
+                    updateStatus('Vision Pro VR-tila tuettu!');
+                    return true;
+                } else {
+                    updateStatus('VR-tila ei tuettu, kokeile 3D-esikatselua');
+                    xrButton.disabled = true;
                     return false;
                 }
-
-                console.log('AR-tila tuettu!');
-                return true;
             } catch (error) {
-                console.error('AR-tuen tarkistus epäonnistui:', error);
-                arButton.textContent = 'AR-tarkistus epäonnistui';
-                arButton.disabled = true;
+                updateStatus('XR-tuen tarkistus epäonnistui: ' + error.message);
+                xrButton.disabled = true;
                 return false;
             }
         }
@@ -281,35 +245,71 @@
         // Alusta WebGL
         function initWebGL() {
             try {
-                gl = canvas.getContext('webgl2', { 
-                    xrCompatible: true,
-                    alpha: false,
-                    antialias: true,
-                    depth: true,
-                    stencil: false
-                });
-
+                // Yritä WebGL2:ta ensin
+                gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                
                 if (!gl) {
-                    throw new Error('WebGL 2.0 ei saatavilla');
+                    throw new Error('WebGL ei saatavilla');
                 }
 
-                // Luo shaderit
-                const vertexShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
-                const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-                const program = createProgram(vertexShader, fragmentShader);
-                
+                // Aseta koko ruudun koko
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+
+                // Yksinkertainen shader
+                const vs = `#version 100
+                    attribute vec3 position;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    uniform mat4 modelViewMatrix;
+                    uniform mat4 projectionMatrix;
+                    void main() {
+                        vColor = color;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = 10.0;
+                    }
+                `;
+
+                const fs = `#version 100
+                    precision mediump float;
+                    varying vec3 vColor;
+                    void main() {
+                        gl_FragColor = vec4(vColor, 1.0);
+                    }
+                `;
+
+                // Luo shader-ohjelma
+                const program = createProgram(vs, fs);
                 gl.useProgram(program);
 
-                // Alusta puskurit
-                initBuffers(program);
-                
-                console.log('WebGL alustettu onnistuneesti');
+                // Alusta avatarin geometria
+                initAvatarGeometry(program);
+
+                updateStatus('WebGL alustettu onnistuneesti');
                 return true;
-                
+
             } catch (error) {
-                console.error('WebGL alustus epäonnistui:', error);
+                updateStatus('WebGL alustus epäonnistui: ' + error.message);
                 return false;
             }
+        }
+
+        // Luo shader-ohjelma
+        function createProgram(vsSource, fsSource) {
+            const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
+            const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fsSource);
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                throw new Error('Shader-ohjelman linkitys epäonnistui: ' + gl.getProgramInfoLog(program));
+            }
+            
+            return program;
         }
 
         // Kääntää shaderin
@@ -321,88 +321,116 @@
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
                 const error = gl.getShaderInfoLog(shader);
                 gl.deleteShader(shader);
-                throw new Error(`Shaderin kääntäminen epäonnistui: ${error}`);
+                throw new Error('Shaderin kääntäminen epäonnistui: ' + error);
             }
             
             return shader;
         }
 
-        // Luo shader-ohjelma
-        function createProgram(vertexShader, fragmentShader) {
-            const program = gl.createProgram();
-            gl.attachShader(program, vertexShader);
-            gl.attachShader(program, fragmentShader);
-            gl.linkProgram(program);
-            
-            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-                const error = gl.getProgramInfoLog(program);
-                throw new Error(`Ohjelman linkitys epäonnistui: ${error}`);
-            }
-            
-            return program;
-        }
+        // Avatarin geometria (yksinkertainen hahmo)
+        function initAvatarGeometry(program) {
+            // Pisteet avatarille (pää, vartalo, kädet, jalat)
+            const positions = new Float32Array([
+                // Pää (0-4)
+                0.0, 0.6, -2.0,    // pään keskus
+                0.2, 0.5, -2.0,    // oikea
+                -0.2, 0.5, -2.0,   // vasen
+                0.0, 0.7, -2.0,    // ylä
+                0.0, 0.5, -1.8,    // eteen
 
-        // Alusta geometria puskurit
-        function initBuffers(program) {
-            // Vertex puskuri
-            const vertexBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, avatarVertices, gl.STATIC_DRAW);
-            
-            const positionAttributeLocation = gl.getAttribLocation(program, "aVertexPosition");
-            gl.enableVertexAttribArray(positionAttributeLocation);
-            gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+                // Vartalo (5-6)
+                0.0, 0.5, -2.0,    // ylä
+                0.0, 0.2, -2.0,    // ala
 
-            // Väri puskuri
+                // Kädet (7-10)
+                -0.3, 0.45, -2.0,  // vasen ylä
+                -0.5, 0.3, -2.0,   // vasen ala
+                0.3, 0.45, -2.0,   // oikea ylä
+                0.5, 0.3, -2.0,    // oikea ala
+
+                // Jalat (11-14)
+                -0.1, 0.2, -2.0,   // vasen ylä
+                -0.2, -0.1, -2.0,  // vasen ala
+                0.1, 0.2, -2.0,    // oikea ylä
+                0.2, -0.1, -2.0    // oikea ala
+            ]);
+
+            // Värit (värikkäät, lapsenomaiset)
+            const colors = new Float32Array([
+                // Pää (vaaleanpunainen)
+                1.0, 0.8, 0.9, 1.0, 0.8, 0.9, 1.0, 0.8, 0.9, 1.0, 0.8, 0.9, 1.0, 0.8, 0.9,
+                // Vartalo (sininen)
+                0.2, 0.5, 1.0, 0.2, 0.5, 1.0,
+                // Kädet (vaaleanpunainen)
+                1.0, 0.8, 0.9, 1.0, 0.8, 0.9, 1.0, 0.8, 0.9, 1.0, 0.8, 0.9,
+                // Jalat (sininen)
+                0.2, 0.5, 1.0, 0.2, 0.5, 1.0, 0.2, 0.5, 1.0, 0.2, 0.5, 1.0
+            ]);
+
+            // Position buffer
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+            
+            const positionLocation = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+
+            // Color buffer
             const colorBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, avatarColors, gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
             
-            const colorAttributeLocation = gl.getAttribLocation(program, "aVertexColor");
-            gl.enableVertexAttribArray(colorAttributeLocation);
-            gl.vertexAttribPointer(colorAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+            const colorLocation = gl.getAttribLocation(program, "color");
+            gl.enableVertexAttribArray(colorLocation);
+            gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
 
-            // OpenGL asetukset
             gl.enable(gl.DEPTH_TEST);
-            gl.enable(gl.CULL_FACE);
-            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clearColor(0.1, 0.1, 0.1, 1.0);
         }
 
         // Piirrä avatar
-        function drawAvatar(view, projectionMatrix) {
-            const program = gl.getParameter(gl.CURRENT_PROGRAM);
+        function drawAvatar() {
+            const time = Date.now() * 0.001;
             
-            // Hae uniformien sijainnit
-            const uModelViewMatrix = gl.getUniformLocation(program, "uModelViewMatrix");
-            const uProjectionMatrix = gl.getUniformLocation(program, "uProjectionMatrix");
-            
-            // Aseta projektio matriisi
-            gl.uniformMatrix4fv(uProjectionMatrix, false, projectionMatrix);
-            
-            // Lasketaan aikaan perustuva animaatio
-            const time = performance.now() * 0.001;
-            const bounce = Math.sin(time * 2) * 0.1;
-            const sway = Math.sin(time * 1.5) * 0.05;
-            
-            // Avatarin sijainti (1.5 metriä eteenpäin, hieman alhaalla)
-            const avatarMatrix = new Float32Array([
-                1.0, 0.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0 + bounce,
-                0.0, 0.0, 1.0, -1.5,
-                sway, -0.3 + bounce, 0.0, 1.0
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // Yksinkertainen projektiomatriisi
+            const aspect = canvas.width / canvas.height;
+            const projectionMatrix = new Float32Array([
+                1.0 / aspect, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
             ]);
+
+            // Animaatio (keinuva liike)
+            const bounce = Math.sin(time * 2) * 0.1;
+            const modelViewMatrix = new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, bounce,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]);
+
+            const program = gl.getParameter(gl.CURRENT_PROGRAM);
+            const projectionLocation = gl.getUniformLocation(program, "projectionMatrix");
+            const modelViewLocation = gl.getUniformLocation(program, "modelViewMatrix");
+
+            gl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
+            gl.uniformMatrix4fv(modelViewLocation, false, modelViewMatrix);
+
+            // Piirrä avatar pisteinä
+            gl.drawArrays(gl.POINTS, 0, 15);
             
-            gl.uniformMatrix4fv(uModelViewMatrix, false, avatarMatrix);
-            
-            // Piirrä avatar pisteinä ja viivoina (yksinkertainen hahmo)
-            gl.drawArrays(gl.POINTS, 0, avatarVertices.length / 3);
-            gl.drawArrays(gl.LINE_STRIP, 5, 2);  // Vartalo
-            gl.drawArrays(gl.LINES, 7, 4);       // Kädet
-            gl.drawArrays(gl.LINES, 11, 4);      // Jalat
+            // Piirrä viivat vartalolle
+            gl.drawArrays(gl.LINES, 5, 2);   // Vartalo
+            gl.drawArrays(gl.LINES, 7, 4);   // Kädet
+            gl.drawArrays(gl.LINES, 11, 4);  // Jalat
         }
 
-        // Renderöintisilmukka
-        function renderFrame(time, frame) {
+        // VR-renderöinti
+        function onXRFrame(time, frame) {
             if (!xrSession) return;
 
             const pose = frame.getViewerPose(xrReferenceSpace);
@@ -412,46 +440,36 @@
             gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            // Piirrä jokaiselle näkymälle (silmät)
             for (const view of pose.views) {
                 const viewport = layer.getViewport(view);
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                drawAvatar(view, view.projectionMatrix);
+                drawAvatar();
             }
 
-            animationFrameId = xrSession.requestAnimationFrame(renderFrame);
+            animationFrameId = xrSession.requestAnimationFrame(onXRFrame);
         }
 
-        // Käynnistä AR-sessio
-        async function startARSession() {
+        // Käynnistä VR-sessio
+        async function startXRSession() {
             try {
-                loadingElement.style.display = 'block';
-                arButton.disabled = true;
+                loadingElement.classList.remove('hidden');
+                xrButton.disabled = true;
+                updateStatus('Käynnistetään VR-sessiota...');
 
-                // Tarkista kamera-oikeudet
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    stream.getTracks().forEach(track => track.stop());
-                } catch (err) {
-                    console.warn('Kamera-oikeuksia ei voitu varmistaa:', err);
-                }
-
-                // Pyydä AR-sessio
-                const session = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['local', 'hit-test'],
-                    optionalFeatures: ['dom-overlay', 'light-estimation']
+                // Vision Pro käyttää 'immersive-vr' -sessiota
+                const session = await navigator.xr.requestSession('immersive-vr', {
+                    requiredFeatures: ['local-floor'],
+                    optionalFeatures: ['bounded-floor', 'hand-tracking']
                 });
 
                 xrSession = session;
-                console.log('AR-sessio aloitettu');
+                isInXRSession = true;
 
-                // Tee WebGL yhteensopivaksi XR:n kanssa
+                // Tee WebGL XR-yhteensopivaksi
                 await gl.makeXRCompatible();
                 
-                // Pyydä viiteavaruus
-                xrReferenceSpace = await session.requestReferenceSpace('local');
+                xrReferenceSpace = await session.requestReferenceSpace('local-floor');
                 
-                // Aseta renderöintitila
                 const layer = new XRWebGLLayer(session, gl);
                 session.updateRenderState({ 
                     baseLayer: layer,
@@ -462,97 +480,97 @@
                 canvas.width = layer.framebufferWidth;
                 canvas.height = layer.framebufferHeight;
 
-                // Päällystä näkymä
-                arOverlay.style.display = 'flex';
-                exitArButton.style.display = 'block';
-                arButton.style.display = 'none';
-                infoPanel.style.display = 'block';
-                loadingElement.style.display = 'none';
+                // Piilota käyttöliittymä VR-tilassa
+                container.classList.add('hidden');
+                loadingElement.classList.add('hidden');
 
                 // Aloita renderöinti
-                animationFrameId = session.requestAnimationFrame(renderFrame);
+                animationFrameId = session.requestAnimationFrame(onXRFrame);
 
-                // Käsittele session päättyminen
-                session.addEventListener('end', onSessionEnded);
-                session.addEventListener('visibilitychange', onVisibilityChange);
+                session.addEventListener('end', onXRSessionEnded);
+
+                updateStatus('VR-sessio aktiivinen!');
 
             } catch (error) {
-                console.error('AR-session käynnistys epäonnistui:', error);
-                loadingElement.style.display = 'none';
-                arButton.disabled = false;
-                alert('AR:n käynnistys epäonnistui: ' + error.message);
+                console.error('VR-session käynnistys epäonnistui:', error);
+                loadingElement.classList.add('hidden');
+                xrButton.disabled = false;
+                updateStatus('VR-käynnistys epäonnistui: ' + error.message);
             }
         }
 
-        // Käsittele session päättyminen
-        function onSessionEnded() {
-            console.log('AR-sessio päättynyt');
+        // VR-session päättyminen
+        function onXRSessionEnded() {
             xrSession = null;
+            isInXRSession = false;
             
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
                 animationFrameId = null;
             }
+
+            container.classList.remove('hidden');
+            xrButton.disabled = false;
+            updateStatus('VR-sessio päättynyt');
+        }
+
+        // 3D-esikatselu (fallback)
+        function start3DPreview() {
+            updateStatus('3D-esikatselu aktiivinen');
+            container.classList.add('hidden');
             
-            arOverlay.style.display = 'none';
-            exitArButton.style.display = 'none';
-            arButton.style.display = 'block';
-            infoPanel.style.display = 'none';
-            arButton.disabled = false;
+            function animate() {
+                if (!isInXRSession) {
+                    drawAvatar();
+                    requestAnimationFrame(animate);
+                }
+            }
+            animate();
         }
 
-        // Käsittele näkyvyyden muutos
-        function onVisibilityChange() {
-            if (xrSession && xrSession.visibilityState === 'visible-blurred') {
-                console.log('AR-sessio taustalle');
-            }
-        }
-
-        // Lopeta AR-sessio
-        function endARSession() {
-            if (xrSession) {
-                xrSession.end();
-            }
+        // Lopeta 3D-esikatselu
+        function stop3DPreview() {
+            container.classList.remove('hidden');
         }
 
         // Alusta sovellus
         async function initializeApp() {
-            console.log('Alustetaan sovellusta...');
-            
-            // Alusta WebGL
+            updateStatus('Alustetaan sovellusta...');
+
             if (!initWebGL()) {
-                arButton.textContent = 'WebGL epäonnistui';
-                arButton.disabled = true;
                 return;
             }
+
+            const xrSupported = await checkXRSupport();
             
-            // Tarkista AR-tuki
-            const arSupported = await checkARSupport();
-            if (arSupported) {
-                arButton.addEventListener('click', startARSession);
-                exitArButton.addEventListener('click', endARSession);
-                
-                console.log('Sovellus alustettu valmiiksi');
+            if (xrSupported) {
+                xrButton.addEventListener('click', startXRSession);
             }
+
+            fallbackButton.addEventListener('click', start3DPreview);
+
+            // Lopeta 3D-esikatselu ESC-näppäimellä
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !isInXRSession) {
+                    stop3DPreview();
+                }
+            });
+
+            updateStatus('Valmis! Käynnistä VR-Avatar tai 3D-esikatselu.');
         }
 
-        // Käynnistä sovellus kun sivu on ladattu
+        // Käynnistä sovellus
         window.addEventListener('load', initializeApp);
 
-        // Käsittele virheet
-        window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
-        });
-
-        // Resize käsittely
+        // Käsittele ikkunan koon muutos
         window.addEventListener('resize', () => {
-            if (gl && canvas) {
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
+            if (gl && !isInXRSession) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
             }
         });
 
     </script>
 </body>
 </html>
-
