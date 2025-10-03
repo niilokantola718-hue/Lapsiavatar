@@ -3,549 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - AR-tila</title>
+    <title>AR Test - Vision Pro</title>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            background: transparent;
-        }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 100;
-            max-width: 450px;
-            border: 2px solid #4CAF50;
-        }
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-            transition: all 0.3s;
-        }
-        button:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-        #xrButton {
-            background: #2196F3;
-            font-weight: bold;
-        }
-        #xrButton:hover {
-            background: #0b7dda;
-        }
-        #arButton {
-            background: #FF9800;
-            font-weight: bold;
-        }
-        #arButton:hover {
-            background: #F57C00;
-        }
-        .feature-status {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .status-on { color: #4CAF50; }
-        .status-off { color: #f44336; }
-        #debug {
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
-            font-size: 12px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        #heightIndicator {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #FF6B6B;
-            display: none;
-        }
-        #arInstructions {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #FF9800;
-            display: none;
-            max-width: 300px;
-        }
+        body { margin: 0; padding: 20px; font-family: Arial; background: #f0f0f0; }
+        #result { background: white; padding: 30px; border-radius: 10px; margin: 20px 0; font-size: 18px; }
+        .success { color: green; border: 3px solid green; }
+        .error { color: red; border: 3px solid red; }
+        button { padding: 20px 40px; font-size: 20px; margin: 15px; background: #2196F3; color: white; border: none; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div id="info">
-        <h3>🧒 Lapsi Avatar - AR-tila</h3>
-        
-        <div class="feature-status">
-            <span>WebXR Device API:</span>
-            <span id="status-xr" class="status-on">✅ Käytössä</span>
-        </div>
-        <div class="feature-status">
-            <span>WebXR AR Module:</span>
-            <span id="status-ar" class="status-off">⏳ Tarkistetaan...</span>
-        </div>
-        
-        <button id="enterButton">👣 Astu kehoon (3D)</button>
-        <button id="xrButton">🚀 VR Lapsen Näkökulma</button>
-        <button id="arButton">🌍 AR-tila (Todellinen maailma)</button>
-        
-        <div id="debug">
-            <div>Debug-tiedot:</div>
-            <div id="debug-content"></div>
-        </div>
-    </div>
-
-    <div id="heightIndicator">
-        <h4>📏 Lapsen Korkeus: 95cm</h4>
-        <div>Olet nyt avatarin silmissä</div>
-    </div>
-
-    <div id="arInstructions">
-        <h4>🌍 AR-tila</h4>
-        <div>• Liiku vapaasti ympäri</div>
-        <div>• Törmää virtuaaliesineisiin</div>
-        <div>• Vertaa korkeuttasi esineisiin</div>
-        <div>• Käytä käsiasentoja</div>
-    </div>
-
-    <!-- Three.js + WebXR -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/webxr/XRButton.js"></script>
+    <h1>AR Test - Vision Pro</h1>
+    <div id="result">Testataan...</div>
+    <button onclick="testNow()">Testaa AR</button>
 
     <script>
-        // PÄÄMUUTTUJAT
-        let camera, scene, renderer;
-        let avatar, xrSession = null;
-        let isInFirstPerson = false;
-        let avatarHead;
-        let isInAR = false;
-
-        // DEBUG-JÄRJESTELMÄ
-        function debugLog(message) {
-            const now = new Date().toLocaleTimeString();
-            const debugMessage = `[${now}] ${message}`;
-            console.log(debugMessage);
+        async function testNow() {
+            const result = document.getElementById('result');
             
-            const debugEl = document.getElementById('debug-content');
-            if (debugEl) {
-                debugEl.innerHTML = debugMessage + '<br>' + debugEl.innerHTML;
-            }
-        }
-
-        // ALUSTUS
-        async function init() {
-            debugLog("Alustetaan AR-sovellus...");
-            
-            // Luo scene - AR:ssa tausta on läpinäkyvä/reaalimaailma
-            scene = new THREE.Scene();
-            
-            // AR-tilassa ei taustaväriä tai sumua, jotta näkee reaalimaailman
-            if (!isInAR) {
-                scene.background = new THREE.Color(0x87CEEB);
-                scene.fog = new THREE.Fog(0x87CEEB, 15, 80);
-            }
-
-            // Luo kamera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
-            camera.position.set(0, 1.6, 5);
-
-            // Luo renderer
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                powerPreference: "high-performance",
-                alpha: true // Tärkeä AR:lle - läpinäkyvä tausta
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.xr.enabled = true;
-            
-            // AR:lle tärkeät asetukset
-            renderer.setClearColor(0x000000, 0); // Täysin läpinäkyvä tausta
-            renderer.autoClear = false; // Mahdollistaa reaalimaailman näkymisen
-            
-            document.body.appendChild(renderer.domElement);
-
-            // Lisää valaistus AR:lle optimoitu
-            setupLighting();
-
-            // Luo virtuaaliesineet AR-ympäristöön
-            createARObjects();
-
-            // Luo avatar
-            createAvatar();
-
-            // Tarkista WebXR-ominaisuudet
-            await checkXRFeatures();
-
-            // Aseta tapahtumankäsittelijät
-            setupEventHandlers();
-
-            // Käynnistä animaatio
-            animate();
-
-            debugLog("AR-sovellus alustettu!");
-        }
-
-        function setupLighting() {
-            // AR-tilassa käytetään vähemmän voimakasta valaistusta
-            // koska reaalimaailma tarjoaa oman valaistuksensa
-            const ambientLight = new THREE.AmbientLight(0xffffff, isInAR ? 0.4 : 0.7);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, isInAR ? 0.6 : 1.0);
-            directionalLight.position.set(10, 20, 5);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
-        }
-
-        function createARObjects() {
-            // AR-tilassa luodaan vähemmän esineitä, jotka sopivat reaalimaailmaan
-            
-            // 👇 AR-SPESIFISET ESINEET
-            
-            // 1. INTERAKTIIVISET PALIKAT
-            const colors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7, 0xFFD93D, 0x6BCF7F, 0x4D96FF];
-            
-            // Suuret värikkäät palikat
-            for (let i = 0; i < 8; i++) {
-                const size = 0.3 + Math.random() * 0.4;
-                const geometry = new THREE.BoxGeometry(size, size, size);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: colors[i],
-                    transparent: true,
-                    opacity: 0.9
-                });
-                const cube = new THREE.Mesh(geometry, material);
-                cube.position.set(
-                    (Math.random() - 0.5) * 6,
-                    size / 2,
-                    (Math.random() - 0.5) * 6
-                );
-                cube.castShadow = true;
-                cube.userData = { interactive: true, originalY: cube.position.y };
-                scene.add(cube);
-            }
-
-            // 2. KORKEUSVERTAILUESINEET
-            createHeightReferenceObjects();
-
-            // 3. ANIMAOITUJA ESINEITÄ
-            createAnimatedObjects();
-
-            debugLog("Luotiin " + scene.children.length + " AR-esinettä");
-        }
-
-        function createHeightReferenceObjects() {
-            // Pöytä (75cm)
-            const tableGeometry = new THREE.BoxGeometry(1.5, 0.75, 1);
-            const tableMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x8B4513,
-                transparent: true,
-                opacity: 0.8
-            });
-            const table = new THREE.Mesh(tableGeometry, tableMaterial);
-            table.position.set(2, 0.375, 2);
-            table.castShadow = true;
-            scene.add(table);
-
-            // Tuoli (45cm)
-            const chairGeometry = new THREE.BoxGeometry(0.6, 0.45, 0.6);
-            const chairMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xA0522D,
-                transparent: true,
-                opacity: 0.8
-            });
-            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
-            chair.position.set(-2, 0.225, 2);
-            chair.castShadow = true;
-            scene.add(chair);
-
-            // Lapsen tuoli (30cm)
-            const childChairGeometry = new THREE.BoxGeometry(0.4, 0.3, 0.4);
-            const childChairMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.9
-            });
-            const childChair = new THREE.Mesh(childChairGeometry, childChairMaterial);
-            childChair.position.set(0, 0.15, -2);
-            childChair.castShadow = true;
-            scene.add(childChair);
-        }
-
-        function createAnimatedObjects() {
-            // Keinuva pallo
-            const bouncingBallGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-            const bouncingBallMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFF6B6B,
-                transparent: true,
-                opacity: 0.9
-            });
-            const bouncingBall = new THREE.Mesh(bouncingBallGeometry, bouncingBallMaterial);
-            bouncingBall.position.set(-3, 1, 0);
-            bouncingBall.castShadow = true;
-            bouncingBall.userData = { bounceSpeed: 2 + Math.random() * 2, bounceHeight: 0.5 };
-            scene.add(bouncingBall);
-
-            // Pyörivä kuutio
-            const spinningCubeGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-            const spinningCubeMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x4ECDC4,
-                transparent: true,
-                opacity: 0.9
-            });
-            const spinningCube = new THREE.Mesh(spinningCubeGeometry, spinningCubeMaterial);
-            spinningCube.position.set(3, 0.8, -1);
-            spinningCube.castShadow = true;
-            spinningCube.userData = { rotationSpeed: 0.02 };
-            scene.add(spinningCube);
-        }
-
-        function createAvatar() {
-            const group = new THREE.Group();
-
-            // Lapsen vartalo - AR:ssa hieman läpinäkyvä
-            const bodyGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.8, 8);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x4169E1,
-                transparent: isInAR,
-                opacity: isInAR ? 0.7 : 1.0
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.4;
-            body.castShadow = true;
-            group.add(body);
-
-            // Pää
-            const headGeometry = new THREE.SphereGeometry(0.18, 16, 16);
-            const headMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xFFEBCD,
-                transparent: isInAR,
-                opacity: isInAR ? 0.7 : 1.0
-            });
-            const headMesh = new THREE.Mesh(headGeometry, headMaterial);
-            headMesh.position.y = 0.9;
-            headMesh.castShadow = true;
-            group.add(headMesh);
-
-            // Luo ryhmä kameran kiinnittämistä varten
-            avatarHead = new THREE.Group();
-            avatarHead.position.set(0, 0.95, 0);
-            group.add(avatarHead);
-
-            avatar = group;
-            scene.add(avatar);
-            
-            debugLog("Avatar luotu - AR-optimoitu");
-        }
-
-        async function checkXRFeatures() {
-            debugLog("Tarkistetaan XR-ominaisuuksia...");
-
             if (!navigator.xr) {
-                debugLog("❌ WebXR API ei saatavilla");
-                updateStatus('xr', false);
-                updateStatus('ar', false);
+                result.innerHTML = '<div class="error">❌ WebXR API ei saatavilla</div>';
                 return;
             }
 
             try {
-                // Tarkista VR-tuki
-                const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                updateStatus('xr', vrSupported);
-                document.getElementById('xrButton').style.display = vrSupported ? 'block' : 'none';
-                debugLog(`VR-tuki: ${vrSupported}`);
-
-                // Tarkista AR-tuki
+                // Testaa AR
                 const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                updateStatus('ar', arSupported);
-                document.getElementById('arButton').style.display = arSupported ? 'block' : 'none';
-                debugLog(`AR-tuki: ${arSupported}`);
-
+                
+                if (arSupported) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <h2>🎉 AR TOIMII!</h2>
+                            <p>Onnistuit! Nyt voit:</p>
+                            <ol>
+                                <li>Palaa avatar-sovellukseen</li>
+                                <li>Painaa "AR-tila" -nappia</li>
+                                <li>Nähdä virtuaaliesineet oikean maailman päällä</li>
+                            </ol>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <h2>❌ AR ei vielä toimi</h2>
+                            <p><strong>Tee nämä:</strong></p>
+                            <ol>
+                                <li>Avaa <strong>Settings → Safari → Advanced → Experimental Features</strong></li>
+                                <li>Varmista että <strong>WebXR Device API</strong> on PÄÄLLÄ (vihreä valinta)</li>
+                                <li>Varmista että <strong>WebXR AR Module</strong> on PÄÄLLÄ (vihreä valinta)</li>
+                                <li><strong>Sulje Safari kokonaan</strong> ja avaa uudelleen</li>
+                                <li>Testaa tätä sivua uudelleen</li>
+                            </ol>
+                            <p><em>"WebXR Hit Test" ja "WebXR Layers" eivät ole pakollisia!</em></p>
+                        </div>
+                    `;
+                }
             } catch (error) {
-                debugLog(`XR-tarkistus epäonnistui: ${error.message}`);
+                result.innerHTML = `
+                    <div class="error">
+                        <h2>❌ Testi epäonnistui</h2>
+                        <p>Virhe: ${error.message}</p>
+                        <p>Kokeile käynnistää Safari uudelleen.</p>
+                    </div>
+                `;
             }
         }
 
-        function updateStatus(feature, isSupported) {
-            const element = document.getElementById(`status-${feature}`);
-            if (element) {
-                element.textContent = isSupported ? '✅ Käytettävissä' : '❌ Ei saatavilla';
-                element.className = isSupported ? 'status-on' : 'status-off';
-            }
-        }
-
-        function setupEventHandlers() {
-            document.getElementById('enterButton').addEventListener('click', switchToFirstPerson);
-            document.getElementById('xrButton').addEventListener('click', () => startXRSession('immersive-vr'));
-            document.getElementById('arButton').addEventListener('click', () => startXRSession('immersive-ar'));
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function switchToFirstPerson() {
-            debugLog("Siirrytään avatarin näkökulmaan (3D)...");
-            isInFirstPerson = true;
-            
-            avatarHead.add(camera);
-            camera.position.set(0, 0, 0);
-            camera.rotation.set(0, 0, 0);
-            
-            document.getElementById('enterButton').style.display = 'none';
-            document.getElementById('heightIndicator').style.display = 'block';
-            debugLog("Olet nyt lapsen näkökulmassa (3D)!");
-        }
-
-        async function startXRSession(mode) {
-            debugLog(`Käynnistetään ${mode}...`);
-            
-            if (!navigator.xr) {
-                alert("WebXR ei saatavilla tässä selaimessa.");
-                return;
-            }
-
-            try {
-                const sessionOptions = {
-                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
-                    requiredFeatures: ['local-floor']
-                };
-
-                // AR-tilassa tarvitaan erilaisia ominaisuuksia
-                if (mode === 'immersive-ar') {
-                    sessionOptions.optionalFeatures.push('hit-test', 'dom-overlay');
-                    sessionOptions.requiredFeatures = ['local-floor', 'hit-test'];
-                }
-
-                const session = await navigator.xr.requestSession(mode, sessionOptions);
-                await renderer.xr.setSession(session);
-                
-                // Aseta lapsen korkeus
-                try {
-                    const referenceSpace = await renderer.xr.getReferenceSpace();
-                    const heightOffset = mode === 'immersive-ar' ? -0.65 : -0.7;
-                    const transform = new XRRigidTransform({ y: heightOffset });
-                    const offsetReferenceSpace = referenceSpace.getOffsetReferenceSpace(transform);
-                    renderer.xr.setReferenceSpace(offsetReferenceSpace);
-                    debugLog(`Lapsen korkeus asetettu (${heightOffset}m)`);
-                } catch (offsetError) {
-                    debugLog("Korkeuden offset ei onnistunut: " + offsetError);
-                }
-                
-                xrSession = session;
-                isInFirstPerson = true;
-                isInAR = (mode === 'immersive-ar');
-
-                // Päivitä näkymä AR-tilaan
-                if (isInAR) {
-                    scene.background = null;
-                    scene.fog = null;
-                    document.getElementById('arInstructions').style.display = 'block';
-                    debugLog("AR-tila aktivoitu - näet reaalimaailman");
-                }
-
-                document.getElementById('enterButton').style.display = 'none';
-                document.getElementById('xrButton').style.display = 'none';
-                document.getElementById('arButton').style.display = 'none';
-                document.getElementById('info').style.display = 'none';
-                document.getElementById('heightIndicator').style.display = 'block';
-
-                debugLog(`✅ ${mode} käynnistetty onnistuneesti!`);
-
-                session.addEventListener('end', () => {
-                    debugLog("XR-sessio päättyi");
-                    xrSession = null;
-                    isInFirstPerson = false;
-                    isInAR = false;
-                    
-                    // Palauta normaalitilat
-                    scene.background = new THREE.Color(0x87CEEB);
-                    scene.fog = new THREE.Fog(0x87CEEB, 15, 80);
-                    
-                    document.getElementById('heightIndicator').style.display = 'none';
-                    document.getElementById('arInstructions').style.display = 'none';
-                    document.getElementById('info').style.display = 'block';
-                    document.getElementById('xrButton').style.display = 'block';
-                    document.getElementById('arButton').style.display = 'block';
-                    
-                    if (camera.parent) {
-                        camera.parent.remove(camera);
-                    }
-                    camera.position.set(0, 1.6, 5);
-                });
-
-            } catch (error) {
-                debugLog(`❌ ${mode} sessio epäonnistui: ${error.message}`);
-                alert(`${mode}-sessio epäonnistui: ${error.message}`);
-            }
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function animate() {
-            renderer.setAnimationLoop((timestamp) => {
-                // Päivitä animaatiot
-                updateAnimations(timestamp);
-                
-                // WebXR-tilassa: liikuta avataria kameran mukaan
-                if (isInFirstPerson && xrSession) {
-                    avatar.position.copy(camera.position);
-                    avatar.position.y -= (isInAR ? 0.65 : 0.7);
-                    avatar.rotation.copy(camera.rotation);
-                }
-                
-                renderer.render(scene, camera);
-            });
-        }
-
-        function updateAnimations(timestamp) {
-            // Animaatioiden päivitys
-            scene.children.forEach(child => {
-                if (child.userData) {
-                    // Pomppiva pallo
-                    if (child.userData.bounceSpeed) {
-                        const bounce = Math.sin(timestamp * 0.001 * child.userData.bounceSpeed) * child.userData.bounceHeight;
-                        child.position.y = child.userData.originalY + bounce;
-                    }
-                    
-                    // Pyörivä kuutio
-                    if (child.userData.rotationSpeed) {
-                        child.rotation.y += child.userData.rotationSpeed;
-                        child.rotation.x += child.userData.rotationSpeed * 0.5;
-                    }
-                }
-            });
-        }
-
-        // KÄYNNISTÄ SOVELLUS
-        window.addEventListener('load', init);
+        // Testaa automaattisesti
+        testNow();
     </script>
 </body>
 </html>
