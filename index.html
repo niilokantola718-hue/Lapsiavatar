@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Camera AR & VR</title>
+    <title>Lapsi Avatar - Oikea Camera AR</title>
     <style>
         body { 
             margin: 0; 
@@ -67,34 +67,38 @@
             border: 2px solid #FF6B6B;
             display: none;
         }
-        #cameraInfo {
+        #arView {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #9C27B0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: none;
-            max-width: 300px;
+            z-index: 50;
+        }
+        #arCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
     <div id="info">
-        <h2>🧒 Lapsi Avatar - Camera AR & VR</h2>
+        <h2>🧒 Lapsi Avatar - Oikea Camera AR</h2>
         
         <div class="status-box">
             <h4>Valitse toimintatila:</h4>
-            <p><strong>Camera AR:</strong> Näet oikean maailman kameran kautta + virtuaaliesineet</p>
+            <p><strong>Camera AR:</strong> Näet kameran kautta OIKEAN maailman + virtuaaliesineet</p>
             <p><strong>VR-tila:</strong> Täysin virtuaalimaailma lapsen näkökulmasta</p>
             <p><strong>3D-tila:</strong> Perus 3D-kokemus</p>
         </div>
 
         <button id="3dButton">👣 3D-tila (Astu kehoon)</button>
         <button id="vrButton">🚀 VR-tila</button>
-        <button id="cameraButton">📷 Camera AR</button>
+        <button id="cameraButton">📷 Oikea Camera AR</button>
 
         <div class="status-box">
             <div id="statusMessage">Alustetaan...</div>
@@ -106,28 +110,26 @@
         <p>Olet nyt 4-vuotiaan lapsen näkökulmassa</p>
     </div>
 
-    <div id="cameraInfo">
-        <h3>📷 Camera AR -tila</h3>
-        <p>• Näet oman ympäristösi</p>
-        <p>• Virtuaaliesineet ovat päällä</p>
-        <p>• Liiku vapaasti!</p>
+    <!-- AR-näkymä kameran kuvan kanssa -->
+    <div id="arView">
+        <canvas id="arCanvas"></canvas>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script>
         // PÄÄMUUTTUJAT
         let camera, scene, renderer, avatar;
-        let video, videoTexture, isCameraAR = false;
+        let arCamera, arScene, arRenderer;
+        let video, isCameraAR = false;
         let xrSession = null, isInVR = false;
 
         // ALUSTUS
         async function init() {
             updateStatus("Alustetaan 3D-ympäristöä...");
             
-            // Luo scene
+            // Luo pääscene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
 
             // Luo kamera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
@@ -146,11 +148,14 @@
             // Valaistus
             setupLighting();
 
-            // Luo ympäristö lapsen näkökulmaan
+            // Luo ympäristö
             createChildEnvironment();
 
             // Luo avatar
             createAvatar();
+
+            // Alusta AR-näkymä
+            initARView();
 
             // Tarkista toimivat tilat
             await checkAvailableModes();
@@ -162,6 +167,24 @@
             animate();
 
             updateStatus("Valmis! Valitse toimintatila.");
+        }
+
+        function initARView() {
+            // Luo AR-scene (erillinen kameran kuvan näkymälle)
+            arScene = new THREE.Scene();
+            
+            // Luo AR-kamera
+            arCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Luo AR-renderer
+            const arCanvas = document.getElementById('arCanvas');
+            arRenderer = new THREE.WebGLRenderer({
+                canvas: arCanvas,
+                alpha: true,
+                antialias: true
+            });
+            arRenderer.setSize(window.innerWidth, window.innerHeight);
+            arRenderer.setClearColor(0x000000, 0); // Täysin läpinäkyvä
         }
 
         function setupLighting() {
@@ -178,7 +201,11 @@
             // Lattia
             const floor = new THREE.Mesh(
                 new THREE.PlaneGeometry(50, 50),
-                new THREE.MeshStandardMaterial({ color: 0x90EE90 })
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x90EE90,
+                    transparent: true,
+                    opacity: 0.7
+                })
             );
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
@@ -192,82 +219,69 @@
         }
 
         function createHeightReferences() {
-            // Pöytä (75cm - lapsi näkee juuri alle)
+            const colors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7];
+            
+            // Pöytä (75cm)
             const table = new THREE.Mesh(
-                new THREE.BoxGeometry(3, 0.75, 2),
-                new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+                new THREE.BoxGeometry(2, 0.75, 1.5),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x8B4513,
+                    transparent: true,
+                    opacity: 0.9
+                })
             );
-            table.position.set(5, 0.375, 5);
+            table.position.set(3, 0.375, 4);
             scene.add(table);
 
-            // Tuoli (45cm - lapsi näkee yli)
+            // Tuolit
             const chair = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 0.45, 0.8),
-                new THREE.MeshStandardMaterial({ color: 0xA0522D })
+                new THREE.BoxGeometry(0.7, 0.45, 0.7),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xA0522D,
+                    transparent: true,
+                    opacity: 0.9
+                })
             );
-            chair.position.set(-3, 0.225, 6);
+            chair.position.set(1, 0.225, 5);
             scene.add(chair);
 
-            // Lapsen tuoli (30cm)
-            const childChair = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.3, 0.5),
-                new THREE.MeshStandardMaterial({ color: 0xFFD700 })
-            );
-            childChair.position.set(2, 0.15, -4);
-            scene.add(childChair);
+            // Lapsen leluja
+            for (let i = 0; i < 12; i++) {
+                const size = 0.3 + Math.random() * 0.5;
+                const geometry = Math.random() > 0.5 ? 
+                    new THREE.SphereGeometry(size, 16, 16) :
+                    new THREE.BoxGeometry(size, size, size);
+                    
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const toy = new THREE.Mesh(geometry, material);
+                toy.position.set(
+                    (Math.random() - 0.5) * 20,
+                    size / 2,
+                    (Math.random() - 0.5) * 20
+                );
+                scene.add(toy);
+            }
         }
 
         function createChildWorld() {
-            // Värikkäitä leluja
-            const colors = [0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4, 0xFFEAA7];
-            
-            // Isot pallot
-            for (let i = 0; i < 8; i++) {
-                const ball = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.8, 16, 16),
-                    new THREE.MeshStandardMaterial({ 
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        transparent: true,
-                        opacity: 0.9
-                    })
-                );
-                ball.position.set(
-                    (Math.random() - 0.5) * 25,
-                    0.8,
-                    (Math.random() - 0.5) * 25
-                );
-                scene.add(ball);
-            }
-
-            // Lelukuutiot
-            for (let i = 0; i < 6; i++) {
-                const cube = new THREE.Mesh(
-                    new THREE.BoxGeometry(1, 1, 1),
-                    new THREE.MeshStandardMaterial({ 
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        transparent: true,
-                        opacity: 0.9
-                    })
-                );
-                cube.position.set(
-                    (Math.random() - 0.5) * 20,
-                    0.5,
-                    (Math.random() - 0.5) * 20
-                );
-                scene.add(cube);
-            }
+            // Ei tarvita ylimääräistä, koska ympäristö on oikea maailma Camera AR:ssa
         }
 
         function createAvatar() {
             const group = new THREE.Group();
 
-            // Lapsen vartalo
+            // Lapsen vartalo - AR:ssa läpinäkyvä
             const body = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.25, 0.25, 0.8, 8),
                 new THREE.MeshStandardMaterial({ 
                     color: 0x4169E1,
                     transparent: true,
-                    opacity: 0.8
+                    opacity: 0.3  // Erittäin läpinäkyvä AR:ssa
                 })
             );
             body.position.y = 0.4;
@@ -279,7 +293,7 @@
                 new THREE.MeshStandardMaterial({ 
                     color: 0xFFEBCD,
                     transparent: true,
-                    opacity: 0.8
+                    opacity: 0.3
                 })
             );
             head.position.y = 0.9;
@@ -323,10 +337,11 @@
 
         function enter3DMode() {
             updateStatus("Siirrytään 3D-tilaan...");
+            exitCameraAR(); // Varmista että Camera AR on pois päältä
             
             // Siirrä kamera avatarin päähän
             const head = new THREE.Group();
-            head.position.set(0, 0.95, 0); // Lapsen silmien korkeus
+            head.position.set(0, 0.95, 0);
             avatar.add(head);
             head.add(camera);
             camera.position.set(0, 0, 0);
@@ -334,6 +349,10 @@
             // Päivitä näkymä
             document.getElementById('info').style.display = 'none';
             document.getElementById('heightIndicator').style.display = 'block';
+            document.getElementById('arView').style.display = 'none';
+            
+            // Palauta tausta
+            scene.background = new THREE.Color(0x87CEEB);
             
             updateStatus("Olet nyt lapsen näkökulmassa 3D-tilassa!", "success");
         }
@@ -346,6 +365,7 @@
 
             try {
                 updateStatus("Käynnistetään VR-tilaa...");
+                exitCameraAR(); // Varmista että Camera AR on pois päältä
                 
                 const session = await navigator.xr.requestSession('immersive-vr', {
                     optionalFeatures: ['local-floor'],
@@ -369,6 +389,7 @@
 
                 document.getElementById('info').style.display = 'none';
                 document.getElementById('heightIndicator').style.display = 'block';
+                document.getElementById('arView').style.display = 'none';
 
                 updateStatus("VR-tila aktivoitu! Olet lapsen näkökulmassa.", "success");
 
@@ -394,38 +415,73 @@
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
                 });
 
                 // Luo video
                 video = document.createElement('video');
                 video.srcObject = stream;
+                video.playsInline = true;
                 video.play();
 
-                // Luo tekstuuri
-                videoTexture = new THREE.VideoTexture(video);
-                videoTexture.minFilter = THREE.LinearFilter;
-                videoTexture.magFilter = THREE.LinearFilter;
-                
-                // Aseta video taustaksi
-                scene.background = videoTexture;
-                isCameraAR = true;
+                // Odota että video latautuu
+                video.addEventListener('loadedmetadata', () => {
+                    // Aseta kameran koko
+                    const videoWidth = video.videoWidth;
+                    const videoHeight = video.videoHeight;
+                    
+                    // Luo tekstuuri videosta
+                    const videoTexture = new THREE.VideoTexture(video);
+                    videoTexture.minFilter = THREE.LinearFilter;
+                    videoTexture.magFilter = THREE.LinearFilter;
+                    
+                    // Luo taso kameran kuvalle
+                    const videoGeometry = new THREE.PlaneGeometry(20, 20 * (videoHeight / videoWidth));
+                    const videoMaterial = new THREE.MeshBasicMaterial({ 
+                        map: videoTexture,
+                        transparent: true,
+                        opacity: 1.0
+                    });
+                    const videoScreen = new THREE.Mesh(videoGeometry, videoMaterial);
+                    videoScreen.position.set(0, 0, -15); // Taustalla
+                    
+                    // Tyhjennä AR-scene ja lisää video
+                    arScene = new THREE.Scene();
+                    arScene.add(videoScreen);
+                    
+                    // Aseta AR-kamera
+                    arCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    arCamera.position.set(0, 0, 0);
+                    arCamera.lookAt(0, 0, -1);
 
-                // Siirry avatarin näkökulmaan
-                const head = new THREE.Group();
-                head.position.set(0, 0.95, 0);
-                avatar.add(head);
-                head.add(camera);
-                camera.position.set(0, 0, 0);
+                    // Siirrä kamera avatarin päähän (lapsen korkeus)
+                    const head = new THREE.Group();
+                    head.position.set(0, 0.95, 0);
+                    avatar.add(head);
+                    head.add(camera);
+                    camera.position.set(0, 0, 0);
 
-                // Päivitä näkymä
-                document.getElementById('info').style.display = 'none';
-                document.getElementById('heightIndicator').style.display = 'block';
-                document.getElementById('cameraInfo').style.display = 'block';
+                    // Tee avatar läpinäkyväksi AR:ssa
+                    avatar.traverse((child) => {
+                        if (child.isMesh) {
+                            child.material.transparent = true;
+                            child.material.opacity = 0.2;
+                        }
+                    });
 
-                updateStatus("Camera AR aktivoitu! Näet oman ympäristösi.", "success");
+                    // Päivitä näkymä
+                    document.getElementById('info').style.display = 'none';
+                    document.getElementById('heightIndicator').style.display = 'block';
+                    document.getElementById('arView').style.display = 'block';
+                    
+                    // Piilota 3D-tausta
+                    scene.background = null;
+
+                    isCameraAR = true;
+                    updateStatus("Camera AR aktivoitu! Näet oman ympäristösi lapsen silmin.", "success");
+                });
 
             } catch (error) {
                 updateStatus(`Kameran käyttö epäonnistui: ${error.message}`, "error");
@@ -433,17 +489,44 @@
             }
         }
 
+        function exitCameraAR() {
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            isCameraAR = false;
+            document.getElementById('arView').style.display = 'none';
+            
+            // Palauta avatarin läpinäkyvyys
+            avatar.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.opacity = 0.8;
+                }
+            });
+        }
+
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            if (arRenderer) {
+                arCamera.aspect = window.innerWidth / window.innerHeight;
+                arCamera.updateProjectionMatrix();
+                arRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
         }
 
         function animate() {
             renderer.setAnimationLoop(() => {
-                // Päivitä video tekstuuri Camera AR:ssa
-                if (isCameraAR && video && video.readyState === video.HAVE_ENOUGH_DATA) {
-                    videoTexture.needsUpdate = true;
+                if (isCameraAR) {
+                    // Renderöi ensin kameran kuva
+                    arRenderer.render(arScene, arCamera);
+                    
+                    // Sitten renderöi 3D-objektit päälle (läpinäkyvästi)
+                    renderer.render(scene, camera);
+                } else {
+                    // Normaali renderöinti
+                    renderer.render(scene, camera);
                 }
                 
                 // Liikuta avataria VR-tilassa
@@ -452,8 +535,6 @@
                     avatar.position.y -= 0.7;
                     avatar.rotation.copy(camera.rotation);
                 }
-                
-                renderer.render(scene, camera);
             });
         }
 
