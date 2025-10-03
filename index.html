@@ -106,18 +106,8 @@
             100% { transform: rotate(360deg); }
         }
 
-        #camera-feed {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-            display: none;
-        }
-
-        #ar-overlay {
+        /* POISTETAAN KAMERA-FEED KOSKA VISION PRO KÄYTTÄÄ OMA KAMERA */
+        #ar-view {
             position: fixed;
             top: 0;
             left: 0;
@@ -165,65 +155,213 @@
         /* Lapsimaiset animaatiot */
         @keyframes float {
             0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-10px) scale(1.05); }
+            50% { transform: translateY(-15px) scale(1.05); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .floating {
-            animation: float 3s ease-in-out infinite;
+            animation: float 4s ease-in-out infinite;
         }
 
-        /* Avatar-tyylit */
-        .avatar {
+        .bouncing {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .pulsing {
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        /* Paranneltu avatar */
+        .avatar-container {
             position: absolute;
-            width: 120px;
-            height: 180px;
-            background: transparent;
+            width: 200px;
+            height: 250px;
             z-index: 600;
             display: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
 
-        .avatar-body {
-            position: absolute;
-            width: 80px;
-            height: 100px;
-            background: linear-gradient(45deg, #4ECDC4, #44A08D);
-            border-radius: 40px 40px 20px 20px;
-            top: 60px;
-            left: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        .avatar {
+            position: relative;
+            width: 100%;
+            height: 100%;
         }
 
         .avatar-head {
             position: absolute;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(45deg, #FFD6CC, #FFB8A4);
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
             border-radius: 50%;
-            top: 0;
-            left: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            top: 20px;
+            left: 50px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 4px solid white;
+        }
+
+        .avatar-face {
+            position: absolute;
+            width: 70px;
+            height: 60px;
+            top: 25px;
+            left: 15px;
         }
 
         .avatar-eye {
             position: absolute;
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
             background: #333;
             border-radius: 50%;
             top: 20px;
         }
 
-        .avatar-eye.left { left: 45px; }
-        .avatar-eye.right { left: 63px; }
+        .avatar-eye.left { 
+            left: 15px; 
+            animation: blink 4s infinite;
+        }
+        .avatar-eye.right { 
+            left: 40px; 
+            animation: blink 4s infinite 0.5s;
+        }
 
         .avatar-mouth {
             position: absolute;
-            width: 20px;
-            height: 8px;
+            width: 30px;
+            height: 15px;
             background: #ff6b6b;
-            border-radius: 0 0 10px 10px;
-            top: 35px;
-            left: 50px;
+            border-radius: 0 0 15px 15px;
+            top: 45px;
+            left: 20px;
+            animation: smile 6s infinite;
+        }
+
+        .avatar-body {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            border-radius: 50px 50px 20px 20px;
+            top: 110px;
+            left: 40px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 4px solid white;
+        }
+
+        .avatar-arm {
+            position: absolute;
+            width: 20px;
+            height: 60px;
+            background: #44A08D;
+            border-radius: 10px;
+            top: 120px;
+        }
+
+        .avatar-arm.left {
+            left: 25px;
+            transform-origin: top center;
+            animation: wave 5s infinite;
+        }
+
+        .avatar-arm.right {
+            right: 25px;
+            transform-origin: top center;
+            animation: wave 5s infinite 2.5s;
+        }
+
+        .avatar-leg {
+            position: absolute;
+            width: 25px;
+            height: 70px;
+            background: #44A08D;
+            border-radius: 12px;
+            top: 220px;
+        }
+
+        .avatar-leg.left {
+            left: 55px;
+            animation: walk 3s infinite;
+        }
+
+        .avatar-leg.right {
+            right: 55px;
+            animation: walk 3s infinite 1.5s;
+        }
+
+        /* Animaatiot */
+        @keyframes blink {
+            0%, 90%, 100% { height: 16px; }
+            95% { height: 2px; }
+        }
+
+        @keyframes smile {
+            0%, 90%, 100% { 
+                border-radius: 0 0 15px 15px;
+                height: 15px;
+            }
+            95% { 
+                border-radius: 15px;
+                height: 8px;
+            }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-30deg); }
+        }
+
+        @keyframes walk {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(10deg); }
+        }
+
+        .environment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .bubble:nth-child(1) {
+            width: 30px;
+            height: 30px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .bubble:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            top: 60%;
+            left: 80%;
+            animation-delay: 2s;
+        }
+
+        .bubble:nth-child(3) {
+            width: 40px;
+            height: 40px;
+            top: 80%;
+            left: 20%;
+            animation-delay: 4s;
         }
 
         .debug-info {
@@ -241,17 +379,27 @@
     </style>
 </head>
 <body>
-    <!-- Kamera feed -->
-    <video id="camera-feed" autoplay playsinline></video>
-
-    <!-- AR-overlay -->
-    <div id="ar-overlay">
-        <div class="avatar floating" id="avatar">
-            <div class="avatar-head"></div>
-            <div class="avatar-body"></div>
-            <div class="avatar-eye left"></div>
-            <div class="avatar-eye right"></div>
-            <div class="avatar-mouth"></div>
+    <!-- AR-näkymä - VISION PRO HOITAA KAMERAN ITSE -->
+    <div id="ar-view">
+        <div class="environment">
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+        </div>
+        <div class="avatar-container floating" id="avatar-container">
+            <div class="avatar">
+                <div class="avatar-head"></div>
+                <div class="avatar-face">
+                    <div class="avatar-eye left"></div>
+                    <div class="avatar-eye right"></div>
+                    <div class="avatar-mouth"></div>
+                </div>
+                <div class="avatar-body"></div>
+                <div class="avatar-arm left"></div>
+                <div class="avatar-arm right"></div>
+                <div class="avatar-leg left"></div>
+                <div class="avatar-leg right"></div>
+            </div>
         </div>
     </div>
 
@@ -277,7 +425,7 @@
             <p>1. Paina "Käynnistä AR-Kokemus" -painiketta</p>
             <p>2. Salli kameran käyttö kun selain pyytää</p>
             <p>3. Liiku ympäri ja nauti lapsuuden uudelleenkokemisesta!</p>
-            <p><strong>Vinkki:</strong> Varmista, että Vision Pro -lasiesi kamerat ovat päällä ja Safari-selain on päivitetty.</p>
+            <p><strong>Vinkki:</strong> Vision Pro käyttää omaa kamerajärjestelmäänsä - älä huolehdi yliviivatuista kuvista!</p>
         </div>
     </div>
 
@@ -290,14 +438,13 @@
         let currentStream = null;
 
         // DOM-elementit
-        const cameraFeed = document.getElementById('camera-feed');
-        const arOverlay = document.getElementById('ar-overlay');
+        const arView = document.getElementById('ar-view');
         const uiContainer = document.getElementById('ui-container');
         const arButton = document.getElementById('ar-button');
         const exitArButton = document.getElementById('exit-ar');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
-        const avatarElement = document.getElementById('avatar');
+        const avatarContainer = document.getElementById('avatar-container');
         const debugInfo = document.getElementById('debug-info');
 
         // Päivitä status
@@ -353,100 +500,28 @@
             }
         }
 
-        // Hanki kameran käyttöoikeus
-        async function getCameraAccess() {
+        // Vision Pro AR - ei tarvita erillistä kameran käyttöoikeutta
+        async function startVisionProAR() {
             try {
-                updateStatus('Pyydetään kameran käyttöoikeutta...');
-                updateDebugInfo('Pyydetään kameraa...');
+                updateStatus('Käynnistetään Vision Pro AR:ia...');
+                updateDebugInfo('Käynnistetään Vision Pro AR:ia');
                 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
+                // Vision Pro käyttää omaa kamerajärjestelmäänsä
+                // Ei tarvita getUserMedia -kutsua
                 
-                currentStream = stream;
-                cameraFeed.srcObject = stream;
-                
-                // Odota että video latautuu
-                await new Promise((resolve, reject) => {
-                    cameraFeed.onloadedmetadata = () => {
-                        resolve();
-                    };
-                    cameraFeed.onerror = () => {
-                        reject(new Error('Video lataus epäonnistui'));
-                    };
-                    // Timeout varmuudeksi
-                    setTimeout(() => {
-                        resolve(); // Jatketaan vaikka video ei latautuisi
-                    }, 2000);
-                });
-                
-                updateStatus('Kameran käyttöoikeus saatu!');
-                updateDebugInfo('Kamera saatu');
-                return true;
-                
-            } catch (error) {
-                console.error('Kameran käyttöoikeus epäonnistui:', error);
-                updateStatus('Kameran käyttöoikeus epäonnistui. Tarkista selaimen asetukset.', true);
-                updateDebugInfo('Kamera virhe: ' + error.message);
-                return false;
-            }
-        }
-
-        // Yksinkertainen AR-ilman WebXR:ää
-        async function startSimpleAR() {
-            try {
-                updateStatus('Käynnistetään yksinkertaista AR:ia...');
-                updateDebugInfo('Käynnistetään SimpleAR:ia');
-                
-                // Hanki kameran käyttöoikeus
-                const cameraAccess = await getCameraAccess();
-                if (!cameraAccess) {
-                    throw new Error('Kameran käyttöoikeutta ei saatu');
-                }
-
-                // Näytä kamera ja avatar
-                cameraFeed.style.display = 'block';
-                arOverlay.style.display = 'block';
-                avatarElement.style.display = 'block';
-                uiContainer.classList.add('hidden');
-                exitArButton.style.display = 'block';
-
-                // Aseta avatarin sijainti
-                positionAvatar();
-
-                updateStatus('Yksinkertainen AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
-                updateDebugInfo('SimpleAR aktiivinen');
-
-            } catch (error) {
-                console.error('Yksinkertainen AR epäonnistui:', error);
-                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('SimpleAR virhe: ' + error.message);
-            }
-        }
-
-        // WebXR AR-sessio
-        async function startWebXRAR() {
-            try {
-                updateStatus('Käynnistetään WebXR AR:ia...');
-                updateDebugInfo('Käynnistetään WebXR AR:ia');
-                
-                // Testaa erilaisia session asetuksia
+                // Testaa erilaisia session asetuksia Vision Pro:lle
                 const sessionOptions = [
                     { 
                         requiredFeatures: ['local'],
                         optionalFeatures: ['dom-overlay', 'hit-test'] 
                     },
                     { 
-                        requiredFeatures: ['local', 'hit-test'],
+                        requiredFeatures: ['local'],
                         optionalFeatures: ['dom-overlay'] 
                     },
                     { 
                         requiredFeatures: ['viewer'],
-                        optionalFeatures: ['local', 'hit-test'] 
+                        optionalFeatures: ['local'] 
                     }
                 ];
 
@@ -473,30 +548,67 @@
                 updateDebugInfo('WebXR session saatu');
 
                 // Päivitä näkymä AR-tilaan
-                cameraFeed.style.display = 'block';
-                arOverlay.style.display = 'block';
-                avatarElement.style.display = 'block';
+                arView.style.display = 'block';
+                avatarContainer.style.display = 'block';
                 uiContainer.classList.add('hidden');
                 exitArButton.style.display = 'block';
                 loadingElement.style.display = 'none';
 
-                // Aseta avatarin sijainti
-                positionAvatar();
-
                 // Liitä tapahtumankäsittelijät
                 session.addEventListener('end', onSessionEnded);
                 
-                updateStatus('WebXR AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
-                updateDebugInfo('WebXR AR aktiivinen');
+                updateStatus('Vision Pro AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
+                updateDebugInfo('Vision Pro AR aktiivinen');
+
+                // Aloita animaatio
+                startAvatarAnimation();
 
             } catch (error) {
-                console.error('WebXR AR epäonnistui:', error);
-                updateDebugInfo('WebXR AR virhe: ' + error.message);
+                console.error('Vision Pro AR epäonnistui:', error);
+                updateDebugInfo('Vision Pro AR virhe: ' + error.message);
                 
-                // Yritä yksinkertaista AR:aa fallbackina
-                updateStatus('WebXR ei toimi, yritetään yksinkertaista AR:aa...');
-                await startSimpleAR();
+                // Yritä perus AR:aa fallbackina
+                updateStatus('Vision Pro AR ei toimi, yritetään perus AR:aa...');
+                await startBasicAR();
             }
+        }
+
+        // Perus AR (fallback)
+        async function startBasicAR() {
+            try {
+                updateStatus('Käynnistetään perus AR:ia...');
+                updateDebugInfo('Käynnistetään Basic AR:ia');
+                
+                // Näytä avatar ilman WebXR:ää
+                arView.style.display = 'block';
+                avatarContainer.style.display = 'block';
+                uiContainer.classList.add('hidden');
+                exitArButton.style.display = 'block';
+                loadingElement.style.display = 'none';
+
+                // Aloita animaatio
+                startAvatarAnimation();
+
+                updateStatus('Perus AR aktiivinen! Liiku ympäri nähdäksesi avatarin.');
+                updateDebugInfo('Basic AR aktiivinen');
+
+            } catch (error) {
+                console.error('Perus AR epäonnistui:', error);
+                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
+                updateDebugInfo('Basic AR virhe: ' + error.message);
+            }
+        }
+
+        // Aloita avatar-animaatiot
+        function startAvatarAnimation() {
+            // Avatar aloittaa animaationsa automaattisesti CSS:n kautta
+            // Lisätään vielä satunnaisia liikkeitä
+            setInterval(() => {
+                // Satunnainen pieni liike
+                const randomX = (Math.random() - 0.5) * 20;
+                const randomY = (Math.random() - 0.5) * 10;
+                avatarContainer.style.transform = `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px))`;
+            }, 3000);
         }
 
         // Käynnistä AR kokemus
@@ -507,14 +619,8 @@
                 updateStatus('Aloitetaan AR-kokemus...');
                 updateDebugInfo('Aloitetaan AR-kokemus');
 
-                // 1. Hanki kameran käyttöoikeus ensin
-                const cameraAccess = await getCameraAccess();
-                if (!cameraAccess) {
-                    throw new Error('Kameran käyttöoikeutta ei saatu');
-                }
-
-                // 2. Yritä WebXR AR:aa
-                await startWebXRAR();
+                // Yritä Vision Pro AR:aa ensin
+                await startVisionProAR();
 
             } catch (error) {
                 console.error('AR-kokemuksen käynnistys epäonnistui:', error);
@@ -525,23 +631,10 @@
             }
         }
 
-        // Aseta avatarin aloitussijainti
-        function positionAvatar() {
-            avatarElement.style.left = '50%';
-            avatarElement.style.top = '60%';
-            avatarElement.style.transform = 'translate(-50%, -50%) scale(1.5)';
-        }
-
         // Käsittele session päättyminen
         function onSessionEnded() {
             console.log('XR-sessio päättynyt');
             updateDebugInfo('Session päättynyt');
-            
-            // Pysäytä kamera
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
             
             // Palauta normaalitila
             resetToInitialState();
@@ -558,9 +651,8 @@
 
         // Palauta alkutila
         function resetToInitialState() {
-            cameraFeed.style.display = 'none';
-            arOverlay.style.display = 'none';
-            avatarElement.style.display = 'none';
+            arView.style.display = 'none';
+            avatarContainer.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitArButton.style.display = 'none';
             loadingElement.style.display = 'none';
@@ -582,22 +674,22 @@
                 arButton.addEventListener('click', startARExperience);
                 exitArButton.addEventListener('click', endSession);
                 
-                // Lisää liikkeen tunnistus avatarille
+                // Lisää liikkeen tunnistus avatarille (hiirellä/kosketuksella)
                 document.addEventListener('mousemove', (e) => {
-                    if (avatarElement.style.display !== 'none') {
-                        const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                    if (avatarContainer.style.display !== 'none') {
+                        const x = (e.clientX / window.innerWidth - 0.5) * 30;
                         const y = (e.clientY / window.innerHeight - 0.5) * 20;
-                        avatarElement.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1.5)`;
+                        avatarContainer.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
                     }
                 });
 
-                // Lisää touch-liikkeet mobiilia varten
+                // Lisää touch-liikkeet
                 document.addEventListener('touchmove', (e) => {
-                    if (avatarElement.style.display !== 'none' && e.touches.length > 0) {
+                    if (avatarContainer.style.display !== 'none' && e.touches.length > 0) {
                         const touch = e.touches[0];
-                        const x = (touch.clientX / window.innerWidth - 0.5) * 20;
+                        const x = (touch.clientX / window.innerWidth - 0.5) * 30;
                         const y = (touch.clientY / window.innerHeight - 0.5) * 20;
-                        avatarElement.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1.5)`;
+                        avatarContainer.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
                     }
                 });
                 
