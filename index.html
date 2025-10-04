@@ -314,12 +314,25 @@
             z-index: 1002;
             max-width: 300px;
         }
+
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
-    <!-- XR-näkymä - Vision Pro hoitaa kameran -->
+    <!-- WebGL canvas XR:ää varten -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- XR-näkymä -->
     <div id="xr-view">
-        <!-- YKSI avatar, ei useita -->
+        <!-- YKSI avatar -->
         <div id="child-avatar" class="gentle-float">
             <div class="avatar-body">
                 <div class="avatar-head"></div>
@@ -360,7 +373,6 @@
             <p>2. Salli kameran käyttö</p>
             <p>3. Vision Pro näyttää automaattisesti todellisen maailman</p>
             <p>4. Avatar ilmestyy kehoosi kiinnitettynä</p>
-            <p><strong>Huomio:</strong> Älä huolehdi "yliviivatusta kamerasta" - Vision Pro hoitaa kameran näyttämisen automaattisesti.</p>
         </div>
     </div>
 
@@ -368,12 +380,14 @@
     <div class="debug-info" id="debug-info"></div>
 
     <script>
-        // Yksinkertaistettu koodi Vision Pro:lle
+        // WebGL ja XR muuttujat
         let xrSession = null;
-        let currentStream = null;
+        let gl = null;
+        let animationFrameId = null;
 
         // DOM-elementit
         const xrView = document.getElementById('xr-view');
+        const webglCanvas = document.getElementById('webgl-canvas');
         const uiContainer = document.getElementById('ui-container');
         const startButton = document.getElementById('start-button');
         const exitButton = document.getElementById('exit-button');
@@ -392,6 +406,35 @@
         // Päivitä debug-tiedot
         function updateDebugInfo(info) {
             debugInfo.textContent = info;
+        }
+
+        // Alusta WebGL
+        function initWebGL() {
+            try {
+                gl = webglCanvas.getContext('webgl', { 
+                    xrCompatible: true,
+                    alpha: false,
+                    antialias: true,
+                    depth: true,
+                    stencil: false
+                });
+
+                if (!gl) {
+                    throw new Error('WebGL ei saatavilla');
+                }
+
+                // Aseta perus WebGL asetukset
+                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                gl.enable(gl.DEPTH_TEST);
+                gl.enable(gl.CULL_FACE);
+
+                updateDebugInfo('WebGL alustettu');
+                return true;
+            } catch (error) {
+                console.error('WebGL alustus epäonnistui:', error);
+                updateDebugInfo('WebGL virhe: ' + error.message);
+                return false;
+            }
         }
 
         // Tarkista XR-tuki
@@ -447,6 +490,11 @@
                 updateStatus('Käynnistetään XR-kokemusta...');
                 updateDebugInfo('Aloitetaan XR');
 
+                // Alusta WebGL ensin
+                if (!initWebGL()) {
+                    throw new Error('WebGL alustus epäonnistui');
+                }
+
                 const xrSupport = await checkXRSupport();
                 
                 if (xrSupport === 'vr' || xrSupport === 'ar') {
@@ -478,7 +526,23 @@
                 });
 
                 xrSession = session;
+                
+                // Tee WebGL XR-yhteensopivaksi
+                await gl.makeXRCompatible();
+                
+                // Aseta renderöintitila
+                const layer = new XRWebGLLayer(session, gl);
+                session.updateRenderState({ 
+                    baseLayer: layer,
+                    depthNear: 0.1,
+                    depthFar: 100.0
+                });
+
+                // Aseta kokemus
                 setupXRExperience(session, mode);
+
+                // Aloita renderöinti
+                animationFrameId = session.requestAnimationFrame(onXRFrame);
 
             } catch (error) {
                 console.error(`${mode.toUpperCase()}-sessio epäonnistui:`, error);
@@ -486,13 +550,41 @@
             }
         }
 
+        // XR-renderöintisilmukka
+        function onXRFrame(time, frame) {
+            if (!xrSession) return;
+
+            const pose = frame.getViewerPose(xrSession.renderState.referenceSpace);
+            
+            if (pose) {
+                const layer = xrSession.renderState.baseLayer;
+                gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+                
+                // Tyhjennä näyttö
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                
+                // Renderöi jokaiselle näkymälle (silmät)
+                for (const view of pose.views) {
+                    const viewport = layer.getViewport(view);
+                    gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
+                    
+                    // Tässä voisi olla 3D-renderöintiä, mutta käytämme HTML-avataria
+                    // joten teemme vain perus clear -operaation
+                }
+            }
+
+            // Jatka renderöintiä
+            animationFrameId = xrSession.requestAnimationFrame(onXRFrame);
+        }
+
         // Aseta XR-kokemus
         function setupXRExperience(session, mode) {
             updateDebugInfo(`Asetetaan ${mode}-kokemus`);
 
-            // Vision Pro hoitaa kameran automaattisesti - EI TARVITA ERILLISTÄ KAMERA-VIDEOTA
+            // Näytä XR-näkymä ja avatar
             xrView.style.display = 'block';
             childAvatar.style.display = 'block';
+            webglCanvas.style.display = 'block';
             uiContainer.classList.add('hidden');
             exitButton.style.display = 'block';
             loadingElement.style.display = 'none';
@@ -576,6 +668,13 @@
         function onSessionEnded() {
             console.log('XR-sessio päättynyt');
             updateDebugInfo('Session päättynyt');
+            
+            // Pysäytä renderöinti
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
             resetToInitialState();
         }
 
@@ -592,6 +691,7 @@
         function resetToInitialState() {
             xrView.style.display = 'none';
             childAvatar.style.display = 'none';
+            webglCanvas.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitButton.style.display = 'none';
             loadingElement.style.display = 'none';
