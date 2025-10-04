@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar - Vision Pro</title>
+    <title>Lapsen Näkökulma - Vision Pro</title>
     <style>
         * {
             margin: 0;
@@ -14,11 +14,12 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            background: #87CEEB; /* Taivaansininen tausta */
             color: #333;
             overflow: hidden;
             width: 100vw;
             height: 100vh;
+            perspective: 1000px;
         }
 
         #ui-container {
@@ -106,7 +107,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        #experience-container {
+        #child-perspective-view {
             position: fixed;
             top: 0;
             left: 0;
@@ -114,178 +115,8 @@
             height: 100%;
             display: none;
             z-index: 500;
-            background: black; /* Musta tausta kunnes kamera latautuu */
-        }
-
-        #camera-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 1;
-        }
-
-        #avatar-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 600;
-            pointer-events: none;
-        }
-
-        /* YKSI AVATAR KEHOSSA */
-        #child-avatar {
-            position: absolute;
-            width: 200px;
-            height: 300px;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 610;
-            display: none;
-        }
-
-        .avatar-body {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
-        }
-
-        .avatar-head {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
-            border-radius: 50%;
-            top: 0;
-            left: 60px;
-            border: 3px solid white;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .avatar-face {
-            position: absolute;
-            width: 50px;
-            height: 40px;
-            top: 20px;
-            left: 15px;
-        }
-
-        .avatar-eye {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #333;
-            border-radius: 50%;
-            top: 10px;
-            animation: blink 4s infinite;
-        }
-
-        .avatar-eye.left { left: 10px; }
-        .avatar-eye.right { left: 30px; animation-delay: 0.5s; }
-
-        .avatar-mouth {
-            position: absolute;
-            width: 20px;
-            height: 8px;
-            background: #ff6b6b;
-            border-radius: 0 0 10px 10px;
-            top: 25px;
-            left: 15px;
-            animation: smile 6s infinite;
-        }
-
-        .avatar-torso {
-            position: absolute;
-            width: 100px;
-            height: 120px;
-            background: linear-gradient(45deg, #4ECDC4, #44A08D);
-            border-radius: 40px 40px 20px 20px;
-            top: 70px;
-            left: 50px;
-            border: 3px solid white;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .avatar-arm {
-            position: absolute;
-            width: 20px;
-            height: 80px;
-            background: #44A08D;
-            border-radius: 10px;
-            top: 75px;
-            animation: wave 4s ease-in-out infinite;
-        }
-
-        .avatar-arm.left {
-            left: 25px;
-            transform-origin: top center;
-        }
-
-        .avatar-arm.right {
-            right: 25px;
-            transform-origin: top center;
-            animation-delay: 2s;
-        }
-
-        .avatar-leg {
-            position: absolute;
-            width: 25px;
-            height: 100px;
-            background: #44A08D;
-            border-radius: 12px;
-            top: 180px;
-            animation: bounce 3s ease-in-out infinite;
-        }
-
-        .avatar-leg.left {
-            left: 55px;
-        }
-
-        .avatar-leg.right {
-            right: 55px;
-            animation-delay: 1.5s;
-        }
-
-        /* Animaatiot */
-        @keyframes blink {
-            0%, 90%, 100% { height: 10px; }
-            95% { height: 2px; }
-        }
-
-        @keyframes smile {
-            0%, 90%, 100% { 
-                border-radius: 0 0 10px 10px;
-                height: 8px;
-            }
-            95% { 
-                border-radius: 10px;
-                height: 4px;
-            }
-        }
-
-        @keyframes wave {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-15deg); }
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
-
-        @keyframes gentleFloat {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-5px); }
-        }
-
-        .gentle-float {
-            animation: gentleFloat 3s ease-in-out infinite;
+            overflow: hidden;
+            background: #87CEEB;
         }
 
         #exit-button {
@@ -322,6 +153,211 @@
             display: none !important;
         }
 
+        /* LAPSEN NÄKÖKULMA - MAALMA LAPSEN SILMIN */
+        .child-world {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        /* Suuret esineet lapsen näkökulmasta */
+        .giant-object {
+            position: absolute;
+            background: #FFD700;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            transform-style: preserve-3d;
+        }
+
+        .giant-table {
+            width: 600px;
+            height: 400px;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%) rotateX(75deg);
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            border: 10px solid #654321;
+        }
+
+        .giant-chair {
+            width: 300px;
+            height: 500px;
+            bottom: -100px;
+            right: 100px;
+            transform: rotateX(80deg) rotateY(-10deg);
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            border: 8px solid #654321;
+        }
+
+        .giant-toy {
+            width: 200px;
+            height: 200px;
+            bottom: 100px;
+            left: 100px;
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            border-radius: 50%;
+            animation: toyBounce 4s ease-in-out infinite;
+            box-shadow: 0 20px 50px rgba(255, 107, 107, 0.3);
+        }
+
+        /* Oma keho lapsena - ENSIMMÄISEN HENKILÖN NÄKÖKULMA */
+        .my-child-body {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 400px;
+            z-index: 600;
+            pointer-events: none;
+        }
+
+        /* Näen omat käteni lapsena */
+        .child-hands {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .child-hand {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
+            border-radius: 30px;
+            bottom: 150px;
+            border: 3px solid white;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .hand-left {
+            left: 50px;
+            transform: rotate(-15deg);
+            animation: handMoveLeft 4s ease-in-out infinite;
+        }
+
+        .hand-right {
+            right: 50px;
+            transform: rotate(15deg);
+            animation: handMoveRight 4s ease-in-out infinite 2s;
+        }
+
+        /* Näen omat jalkani lapsena */
+        .child-legs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .child-leg {
+            position: absolute;
+            width: 50px;
+            height: 120px;
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            border-radius: 25px;
+            bottom: 0;
+        }
+
+        .leg-left {
+            left: 100px;
+            animation: legSwing 3s ease-in-out infinite;
+        }
+
+        .leg-right {
+            right: 100px;
+            animation: legSwing 3s ease-in-out infinite 1.5s;
+        }
+
+        .child-shoe {
+            position: absolute;
+            width: 70px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            bottom: 0;
+            left: -10px;
+        }
+
+        /* Näen omat vaatteeni lapsena */
+        .child-torso {
+            position: absolute;
+            width: 160px;
+            height: 180px;
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            border-radius: 80px 80px 30px 30px;
+            bottom: 120px;
+            left: 70px;
+            border: 4px solid white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .child-shirt {
+            position: absolute;
+            width: 140px;
+            height: 100px;
+            background: #FF6B6B;
+            border-radius: 70px 70px 0 0;
+            top: 20px;
+            left: 10px;
+            border: 3px solid white;
+        }
+
+        /* Lapsen näkökulman efektit */
+        .child-vision-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(255, 255, 255, 0.1) 100%);
+            pointer-events: none;
+            z-index: 700;
+        }
+
+        /* Animaatiot */
+        @keyframes toyBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+        }
+
+        @keyframes handMoveLeft {
+            0%, 100% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(-25deg) translateY(-10px); }
+        }
+
+        @keyframes handMoveRight {
+            0%, 100% { transform: rotate(15deg) translateY(0); }
+            50% { transform: rotate(25deg) translateY(-10px); }
+        }
+
+        @keyframes legSwing {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(8deg); }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.02); }
+        }
+
+        .breathing {
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        /* Lapsen maailma - korkea horisontti */
+        .child-horizon {
+            position: absolute;
+            top: 30%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            transform: rotateX(75deg);
+        }
+
         .debug-info {
             position: fixed;
             bottom: 10px;
@@ -337,26 +373,37 @@
     </style>
 </head>
 <body>
-    <!-- Kokemusnäkymä -->
-    <div id="experience-container">
-        <!-- Kamera video -->
-        <video id="camera-video" autoplay playsinline muted></video>
+    <!-- Lapsen näkökulma - MAALMA LAPSEN SILMIN -->
+    <div id="child-perspective-view">
+        <div class="child-world">
+            <!-- Suuret esineet lapsen näkökulmasta -->
+            <div class="giant-object giant-table"></div>
+            <div class="giant-object giant-chair"></div>
+            <div class="giant-object giant-toy"></div>
+            
+            <!-- Korkea horisontti -->
+            <div class="child-horizon"></div>
+        </div>
         
-        <!-- Avatar container - VAIN YKSI AVATAR -->
-        <div id="avatar-container">
-            <div id="child-avatar" class="gentle-float">
-                <div class="avatar-body">
-                    <div class="avatar-head"></div>
-                    <div class="avatar-face">
-                        <div class="avatar-eye left"></div>
-                        <div class="avatar-eye right"></div>
-                        <div class="avatar-mouth"></div>
-                    </div>
-                    <div class="avatar-torso"></div>
-                    <div class="avatar-arm left"></div>
-                    <div class="avatar-arm right"></div>
-                    <div class="avatar-leg left"></div>
-                    <div class="avatar-leg right"></div>
+        <div class="child-vision-overlay"></div>
+        
+        <!-- Oma keho lapsena - NÄEN OMAT KÄTENI, JALKANI, VAATTEENI -->
+        <div class="my-child-body breathing">
+            <div class="child-hands">
+                <div class="child-hand hand-left"></div>
+                <div class="child-hand hand-right"></div>
+            </div>
+            
+            <div class="child-torso">
+                <div class="child-shirt"></div>
+            </div>
+            
+            <div class="child-legs">
+                <div class="child-leg leg-left">
+                    <div class="child-shoe"></div>
+                </div>
+                <div class="child-leg leg-right">
+                    <div class="child-shoe"></div>
                 </div>
             </div>
         </div>
@@ -364,47 +411,50 @@
 
     <!-- UI container -->
     <div id="ui-container">
-        <h1>👶 Lapsi Avatar</h1>
+        <h1>👶 Lapsen Näkökulma</h1>
         <div class="subtitle">
-            Kokeile olevasi lapsi Vision Pro -laseilla!<br>
-            Näet todellisen maailman kameran kautta ja avatarin kehossasi.
+            Kokeile maailmaa lapsen silmin!<br>
+            Näet maailman matalammalta, esineet ovat suurempia ja näet oman lapsen kehosi.
         </div>
         
-        <button id="start-button">Käynnistä Lapsikokemus</button>
+        <button id="start-button">Kokeile Lapsen Näkökulmaa</button>
         
-        <div id="status">Valmistellaan kokemusta...</div>
+        <div id="status">Valmistellaan lapsen näkökulmaa...</div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan kameraa...</p>
+            <p>Siirrytään lapsen näkökulmaan...</p>
         </div>
 
         <div class="info-panel">
             <h3>Miten toimii:</h3>
-            <p>1. Paina "Käynnistä Lapsikokemus"</p>
-            <p>2. Salli kameran käyttö</p>
-            <p>3. Katso ympärillesi - näet todellisen maailman</p>
-            <p>4. Avatar on kiinni kehossasi!</p>
-            <p><strong>Vihreä valo ylälaidassa on normaali</strong> - se tarkoittaa, että kamera on käytössä.</p>
+            <p>1. Paina "Kokeile Lapsen Näkökulmaa"</p>
+            <p>2. Sinut siirretään lapsen kehoon</p>
+            <p>3. Huomaat miten:</p>
+            <ul>
+                <li>🌍 Maailma näyttää suuremmalta</li>
+                <li>👀 Horisontti on korkeammalla</li>
+                <li>👶 Näet oman lapsen kehosi</li>
+                <li>🎈 Esineet ovat valtavia</li>
+            </ul>
+            <p><strong>Kokemus:</strong> Tunnet olevasi pieni lapsi suuressa maailmassa!</p>
         </div>
     </div>
 
-    <button id="exit-button">Lopeta Kokemus</button>
+    <button id="exit-button">Palaa Normaaliin</button>
     <div class="debug-info" id="debug-info"></div>
 
     <script>
-        // Yksinkertainen toteutus ilman WebXR:ää
-        let currentStream = null;
+        // Yksinkertainen toteutus ilman kameraa - keskitytään lapsen näkökulmaan
+        let isInChildPerspective = false;
 
         // DOM-elementit
-        const experienceContainer = document.getElementById('experience-container');
-        const cameraVideo = document.getElementById('camera-video');
+        const childPerspectiveView = document.getElementById('child-perspective-view');
         const uiContainer = document.getElementById('ui-container');
         const startButton = document.getElementById('start-button');
         const exitButton = document.getElementById('exit-button');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
-        const childAvatar = document.getElementById('child-avatar');
         const debugInfo = document.getElementById('debug-info');
 
         // Päivitä status
@@ -419,202 +469,178 @@
             debugInfo.textContent = info;
         }
 
-        // Hanki kameran käyttöoikeus
-        async function getCameraAccess() {
-            try {
-                updateStatus('Pyydetään kameran käyttöoikeutta...');
-                updateDebugInfo('Pyydetään kameraa...');
-                
-                // Vision Pro:lle käytetään ympäristökameraa (takakamera)
-                let stream;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: 'environment', // Takakamera AR:aa varten
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        },
-                        audio: false
-                    });
-                    updateDebugInfo('Ympäristökamera saatu');
-                } catch (environmentError) {
-                    console.log('Ympäristökamera ei saatavilla, yritetään etukameraa:', environmentError);
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: 'user', // Etukamera
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        },
-                        audio: false
-                    });
-                    updateDebugInfo('Etukamera saatu');
-                }
-                
-                currentStream = stream;
-                cameraVideo.srcObject = stream;
-                
-                // Odota että video latautuu
-                await new Promise((resolve, reject) => {
-                    cameraVideo.onloadedmetadata = () => {
-                        resolve();
-                    };
-                    cameraVideo.onerror = () => {
-                        reject(new Error('Video lataus epäonnistui'));
-                    };
-                    // Timeout varmuudeksi
-                    setTimeout(() => {
-                        resolve();
-                    }, 2000);
-                });
-                
-                updateStatus('Kameran käyttöoikeus saatu!');
-                updateDebugInfo('Kamera valmis');
-                return true;
-                
-            } catch (error) {
-                console.error('Kameran käyttöoikeus epäonnistui:', error);
-                updateStatus('Kameran käyttöoikeus epäonnistui: ' + error.message, true);
-                updateDebugInfo('Kamera virhe: ' + error.message);
-                return false;
-            }
-        }
-
-        // Käynnistä lapsikokemus
-        async function startChildExperience() {
+        // Käynnistä lapsen näkökulma
+        function startChildPerspective() {
             try {
                 loadingElement.style.display = 'block';
                 startButton.disabled = true;
-                updateStatus('Aloitetaan lapsikokemus...');
-                updateDebugInfo('Aloitetaan kokemus');
+                updateStatus('Siirrytään lapsen näkökulmaan...');
+                updateDebugInfo('Siirrytään lapsen perspektiiviin');
 
-                // 1. Hanki kameran käyttöoikeus
-                const cameraAccess = await getCameraAccess();
-                if (!cameraAccess) {
-                    throw new Error('Kameran käyttöoikeutta ei saatu');
-                }
-
-                // 2. Aseta kokemus
-                setupExperience();
+                // Aseta lapsen näkökulma
+                setupChildPerspective();
 
             } catch (error) {
-                console.error('Kokemuksen käynnistys epäonnistui:', error);
+                console.error('Lapsen näkökulman käynnistys epäonnistui:', error);
                 loadingElement.style.display = 'none';
                 startButton.disabled = false;
                 updateStatus('Käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Lopullinen virhe: ' + error.message);
+                updateDebugInfo('Virhe: ' + error.message);
             }
         }
 
-        // Aseta kokemus
-        function setupExperience() {
-            updateDebugInfo('Asetetaan kokemus');
+        // Aseta lapsen näkökulma
+        function setupChildPerspective() {
+            updateDebugInfo('Asetetaan lapsen näkökulma');
 
-            // Päivitä näkymä kokemustilaan
-            experienceContainer.style.display = 'block';
-            childAvatar.style.display = 'block';
-            
+            // Päivitä näkymä lapsen näkökulmaan
+            childPerspectiveView.style.display = 'block';
             uiContainer.classList.add('hidden');
             exitButton.style.display = 'block';
             loadingElement.style.display = 'none';
 
-            // Aloita liikkeiden seuraaminen
-            startMovementTracking();
+            isInChildPerspective = true;
 
-            updateStatus('Lapsikokemus aktiivinen! Liiku ja katso ympärillesi nähdäksesi avatarin kehossasi.');
-            updateDebugInfo('Kokemus aktiivinen');
+            // Aloita lapsen maailman efektit
+            startChildWorldEffects();
+
+            updateStatus('Olet nyt lapsi! Katso ympärillesi ja huomaa miten maailma on erilainen.');
+            updateDebugInfo('Lapsen näkökulma aktiivinen');
         }
 
-        // Liikkeiden seuraaminen
-        function startMovementTracking() {
-            updateDebugInfo('Aloitetaan liikkeiden seuranta');
+        // Lapsen maailman efektit
+        function startChildWorldEffects() {
+            updateDebugInfo('Käynnistetään lapsen maailman efektit');
+
+            // Hiiren/touch liikkeet "katseen" liikuttamiseen
+            let lookX = 0;
+            let lookY = 0;
             
-            let mouseX = 0;
-            let mouseY = 0;
-            
-            // Hiiren liikkeet
             document.addEventListener('mousemove', (e) => {
-                if (experienceContainer.style.display === 'none') return;
-                
-                mouseX = e.clientX / window.innerWidth;
-                mouseY = e.clientY / window.innerHeight;
-                updateAvatarPosition(mouseX, mouseY);
+                if (!isInChildPerspective) return;
+
+                lookX = (e.clientX / window.innerWidth - 0.5) * 10;
+                lookY = (e.clientY / window.innerHeight - 0.5) * 5;
+
+                // Liikuta hieman näkökulmaa
+                const world = document.querySelector('.child-world');
+                world.style.transform = `rotateY(${lookX}deg) rotateX(${-lookY}deg)`;
             });
 
             // Touch-liikkeet
             document.addEventListener('touchmove', (e) => {
-                if (experienceContainer.style.display === 'none') return;
-                
+                if (!isInChildPerspective) return;
+
                 if (e.touches.length > 0) {
-                    mouseX = e.touches[0].clientX / window.innerWidth;
-                    mouseY = e.touches[0].clientY / window.innerHeight;
-                    updateAvatarPosition(mouseX, mouseY);
+                    lookX = (e.touches[0].clientX / window.innerWidth - 0.5) * 10;
+                    lookY = (e.touches[0].clientY / window.innerHeight - 0.5) * 5;
+
+                    const world = document.querySelector('.child-world');
+                    world.style.transform = `rotateY(${lookX}deg) rotateX(${-lookY}deg)`;
                 }
             });
 
-            // Laitteen liikkeet (jos saatavilla)
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', (e) => {
-                    if (experienceContainer.style.display === 'none') return;
-                    
-                    if (e.beta !== null && e.gamma !== null) {
-                        const tiltX = e.gamma / 90;
-                        const tiltY = e.beta / 90;
-                        updateAvatarPosition(0.5 + tiltX * 0.3, 0.5 + tiltY * 0.3);
-                    }
-                });
-            }
-
-            // Satunnaiset luonnolliset liikkeet
+            // Satunnaisia lapsenomaisia liikkeitä
             setInterval(() => {
-                if (experienceContainer.style.display === 'none') return;
-                
-                const floatMove = Math.sin(Date.now() * 0.002) * 3;
-                childAvatar.style.transform = `translateX(-50%) translateY(${floatMove}px)`;
-            }, 50);
+                if (!isInChildPerspective) return;
+
+                // Satunnainen käden heilautus
+                if (Math.random() > 0.7) {
+                    const hand = document.querySelector('.hand-left');
+                    hand.style.animation = 'none';
+                    setTimeout(() => {
+                        hand.style.animation = 'handMoveLeft 0.5s ease-in-out';
+                    }, 10);
+                }
+
+                // Satunnainen jalkojen liike
+                if (Math.random() > 0.8) {
+                    const legs = document.querySelectorAll('.child-leg');
+                    legs.forEach(leg => {
+                        leg.style.animation = 'none';
+                        setTimeout(() => {
+                            leg.style.animation = 'legSwing 0.3s ease-in-out';
+                        }, 10);
+                    });
+                }
+
+            }, 2000);
+
+            // Lisää vilkkuja (lapsen mielikuvitus)
+            setInterval(() => {
+                if (!isInChildPerspective) return;
+                createSparkle();
+            }, 3000);
+
+            // Taustan värien muutos (lapsen elävämpi maailma)
+            let hueRotation = 0;
+            setInterval(() => {
+                if (!isInChildPerspective) return;
+                hueRotation = (hueRotation + 0.05) % 360;
+                childPerspectiveView.style.filter = `hue-rotate(${hueRotation}deg) brightness(1.1) saturate(1.2)`;
+            }, 100);
         }
 
-        // Päivitä avatarin sijainti
-        function updateAvatarPosition(x, y) {
-            // Hieman liikettä reagoimisen tunteen luomiseksi
-            const offsetX = (x - 0.5) * 20;
-            const offsetY = (y - 0.5) * 10;
-            
-            childAvatar.style.transform = `translateX(calc(-50% + ${offsetX}px)) translateY(${offsetY}px)`;
+        // Luo vilkku (lapsen mielikuvitus)
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.style.cssText = `
+                position: absolute;
+                width: 30px;
+                height: 30px;
+                background: radial-gradient(circle, #FFD700, transparent);
+                border-radius: 50%;
+                pointer-events: none;
+                animation: sparkleFloat 3s ease-in-out forwards;
+                top: ${Math.random() * 60 + 20}%;
+                left: ${Math.random() * 80 + 10}%;
+                z-index: 400;
+            `;
+
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes sparkleFloat {
+                    0% { opacity: 0; transform: scale(0) rotate(0deg); }
+                    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+                    100% { opacity: 0; transform: scale(0) rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            childPerspectiveView.appendChild(sparkle);
+            setTimeout(() => sparkle.remove(), 3000);
         }
 
         // Lopeta kokemus
         function endExperience() {
-            // Pysäytä kamera
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
-            
-            resetToInitialState();
+            resetToNormal();
         }
 
-        // Palauta alkutila
-        function resetToInitialState() {
-            experienceContainer.style.display = 'none';
-            childAvatar.style.display = 'none';
+        // Palauta normaali näkökulma
+        function resetToNormal() {
+            childPerspectiveView.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitButton.style.display = 'none';
             loadingElement.style.display = 'none';
             startButton.disabled = false;
+            isInChildPerspective = false;
+
+            // Poista efektit
+            childPerspectiveView.style.filter = 'none';
             
-            updateStatus('Kokemus päättynyt. Voit käynnistää uudestaan!');
-            updateDebugInfo('Alkutila palautettu');
+            updateStatus('Paluu normaaliin näkökulmaan. Voit kokeilla uudestaan milloin vain!');
+            updateDebugInfo('Normaali näkökulma palautettu');
         }
 
         // Alusta sovellus
         function initializeApp() {
-            console.log('Alustetaan Lapsi Avatar -sovellusta...');
+            console.log('Alustetaan Lapsen Näkökulma -sovellusta...');
             updateDebugInfo('Alustetaan...');
 
-            startButton.addEventListener('click', startChildExperience);
+            startButton.addEventListener('click', startChildPerspective);
             exitButton.addEventListener('click', endExperience);
             
-            updateStatus('Valmis! Paina "Käynnistä Lapsikokemus" aloittaaksesi.');
+            updateStatus('Valmis! Paina "Kokeile Lapsen Näkökulmaa" siirtyäksesi lapsen kehoon.');
             updateDebugInfo('Valmis, odotetaan käyttäjää');
         }
 
