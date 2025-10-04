@@ -106,7 +106,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        #camera-container {
+        #experience-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -114,7 +114,7 @@
             height: 100%;
             display: none;
             z-index: 500;
-            overflow: hidden;
+            background: black; /* Musta tausta kunnes kamera latautuu */
         }
 
         #camera-video {
@@ -124,11 +124,10 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* Peilikuva reaaliaikaiseksi */
             z-index: 1;
         }
 
-        #avatar-overlay {
+        #avatar-container {
             position: absolute;
             top: 0;
             left: 0;
@@ -138,98 +137,19 @@
             pointer-events: none;
         }
 
-        #exit-button {
-            position: fixed;
-            top: 30px;
-            right: 30px;
-            padding: 12px 24px;
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-size: 1em;
-            cursor: pointer;
-            z-index: 1001;
-            display: none;
-        }
-
-        .info-panel {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 20px;
-            margin-top: 30px;
-            max-width: 500px;
-            text-align: left;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .info-panel h3 {
-            color: #4ECDC4;
-            margin-bottom: 10px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* AVATAR KEHOSSA */
-        .body-part {
+        /* YKSI AVATAR KEHOSSA */
+        #child-avatar {
             position: absolute;
+            width: 200px;
+            height: 300px;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 610;
-            pointer-events: none;
             display: none;
         }
 
-        /* Pään avatar - sijoitetaan yläosaan */
-        .head-avatar {
-            width: 120px;
-            height: 120px;
-            top: 15%;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        /* Käden avatarit - sijoitetaan sivuille */
-        .hand-avatar {
-            width: 100px;
-            height: 100px;
-            bottom: 30%;
-        }
-
-        .hand-left {
-            left: 10%;
-        }
-
-        .hand-right {
-            right: 10%;
-        }
-
-        /* Vartalon avatar - sijoitetaan keskelle */
-        .torso-avatar {
-            width: 150px;
-            height: 180px;
-            bottom: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        /* Jalkojen avatarit - sijoitetaan alhaalle */
-        .foot-avatar {
-            width: 80px;
-            height: 120px;
-            bottom: 5%;
-        }
-
-        .foot-left {
-            left: 35%;
-        }
-
-        .foot-right {
-            right: 35%;
-        }
-
-        /* Avatarin sisäinen rakenne */
-        .avatar {
+        .avatar-body {
             position: relative;
             width: 100%;
             height: 100%;
@@ -243,7 +163,7 @@
             background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
             border-radius: 50%;
             top: 0;
-            left: 20px;
+            left: 60px;
             border: 3px solid white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
@@ -280,55 +200,55 @@
             animation: smile 6s infinite;
         }
 
-        .avatar-body {
+        .avatar-torso {
             position: absolute;
             width: 100px;
-            height: 100px;
+            height: 120px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
             border-radius: 40px 40px 20px 20px;
-            top: 50px;
-            left: 25px;
+            top: 70px;
+            left: 50px;
             border: 3px solid white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .avatar-arm {
             position: absolute;
-            width: 15px;
-            height: 60px;
+            width: 20px;
+            height: 80px;
             background: #44A08D;
-            border-radius: 8px;
-            top: 45px;
+            border-radius: 10px;
+            top: 75px;
             animation: wave 4s ease-in-out infinite;
         }
 
         .avatar-arm.left {
-            left: 5px;
+            left: 25px;
             transform-origin: top center;
         }
 
         .avatar-arm.right {
-            right: 5px;
+            right: 25px;
             transform-origin: top center;
             animation-delay: 2s;
         }
 
         .avatar-leg {
             position: absolute;
-            width: 20px;
-            height: 80px;
+            width: 25px;
+            height: 100px;
             background: #44A08D;
-            border-radius: 10px;
-            top: 140px;
+            border-radius: 12px;
+            top: 180px;
             animation: bounce 3s ease-in-out infinite;
         }
 
         .avatar-leg.left {
-            left: 30px;
+            left: 55px;
         }
 
         .avatar-leg.right {
-            right: 30px;
+            right: 55px;
             animation-delay: 1.5s;
         }
 
@@ -351,7 +271,7 @@
 
         @keyframes wave {
             0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-20deg); }
+            50% { transform: rotate(-15deg); }
         }
 
         @keyframes bounce {
@@ -360,12 +280,46 @@
         }
 
         @keyframes gentleFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
         }
 
         .gentle-float {
             animation: gentleFloat 3s ease-in-out infinite;
+        }
+
+        #exit-button {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 1em;
+            cursor: pointer;
+            z-index: 1001;
+            display: none;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 30px;
+            max-width: 500px;
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-panel h3 {
+            color: #4ECDC4;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         .debug-info {
@@ -383,80 +337,24 @@
     </style>
 </head>
 <body>
-    <!-- Kamera ja avatar overlay -->
-    <div id="camera-container">
+    <!-- Kokemusnäkymä -->
+    <div id="experience-container">
+        <!-- Kamera video -->
         <video id="camera-video" autoplay playsinline muted></video>
-        <div id="avatar-overlay">
-            <!-- Pään avatar -->
-            <div class="body-part head-avatar gentle-float" id="head-avatar">
-                <div class="avatar">
+        
+        <!-- Avatar container - VAIN YKSI AVATAR -->
+        <div id="avatar-container">
+            <div id="child-avatar" class="gentle-float">
+                <div class="avatar-body">
                     <div class="avatar-head"></div>
                     <div class="avatar-face">
                         <div class="avatar-eye left"></div>
                         <div class="avatar-eye right"></div>
                         <div class="avatar-mouth"></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Vasemman käden avatar -->
-            <div class="body-part hand-avatar hand-left gentle-float" id="hand-left-avatar">
-                <div class="avatar">
-                    <div class="avatar-head"></div>
-                    <div class="avatar-face">
-                        <div class="avatar-eye left"></div>
-                        <div class="avatar-eye right"></div>
-                        <div class="avatar-mouth"></div>
-                    </div>
-                    <div class="avatar-body"></div>
+                    <div class="avatar-torso"></div>
                     <div class="avatar-arm left"></div>
                     <div class="avatar-arm right"></div>
-                </div>
-            </div>
-
-            <!-- Oikean käden avatar -->
-            <div class="body-part hand-avatar hand-right gentle-float" id="hand-right-avatar">
-                <div class="avatar">
-                    <div class="avatar-head"></div>
-                    <div class="avatar-face">
-                        <div class="avatar-eye left"></div>
-                        <div class="avatar-eye right"></div>
-                        <div class="avatar-mouth"></div>
-                    </div>
-                    <div class="avatar-body"></div>
-                    <div class="avatar-arm left"></div>
-                    <div class="avatar-arm right"></div>
-                </div>
-            </div>
-
-            <!-- Vartalon avatar -->
-            <div class="body-part torso-avatar gentle-float" id="torso-avatar">
-                <div class="avatar">
-                    <div class="avatar-head"></div>
-                    <div class="avatar-face">
-                        <div class="avatar-eye left"></div>
-                        <div class="avatar-eye right"></div>
-                        <div class="avatar-mouth"></div>
-                    </div>
-                    <div class="avatar-body"></div>
-                    <div class="avatar-arm left"></div>
-                    <div class="avatar-arm right"></div>
-                    <div class="avatar-leg left"></div>
-                    <div class="avatar-leg right"></div>
-                </div>
-            </div>
-
-            <!-- Vasemman jalan avatar -->
-            <div class="body-part foot-avatar foot-left gentle-float" id="foot-left-avatar">
-                <div class="avatar">
-                    <div class="avatar-leg left"></div>
-                    <div class="avatar-leg right"></div>
-                </div>
-            </div>
-
-            <!-- Oikean jalan avatar -->
-            <div class="body-part foot-avatar foot-right gentle-float" id="foot-right-avatar">
-                <div class="avatar">
                     <div class="avatar-leg left"></div>
                     <div class="avatar-leg right"></div>
                 </div>
@@ -487,7 +385,7 @@
             <p>2. Salli kameran käyttö</p>
             <p>3. Katso ympärillesi - näet todellisen maailman</p>
             <p>4. Avatar on kiinni kehossasi!</p>
-            <p><strong>Huomio:</strong> Tämä käyttää normaalia kameranäkymää, joka toimii varmasti Vision Pro -laseilla.</p>
+            <p><strong>Vihreä valo ylälaidassa on normaali</strong> - se tarkoittaa, että kamera on käytössä.</p>
         </div>
     </div>
 
@@ -499,22 +397,15 @@
         let currentStream = null;
 
         // DOM-elementit
-        const cameraContainer = document.getElementById('camera-container');
+        const experienceContainer = document.getElementById('experience-container');
         const cameraVideo = document.getElementById('camera-video');
         const uiContainer = document.getElementById('ui-container');
         const startButton = document.getElementById('start-button');
         const exitButton = document.getElementById('exit-button');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
+        const childAvatar = document.getElementById('child-avatar');
         const debugInfo = document.getElementById('debug-info');
-        
-        // Avatarin osat
-        const headAvatar = document.getElementById('head-avatar');
-        const handLeftAvatar = document.getElementById('hand-left-avatar');
-        const handRightAvatar = document.getElementById('hand-right-avatar');
-        const torsoAvatar = document.getElementById('torso-avatar');
-        const footLeftAvatar = document.getElementById('foot-left-avatar');
-        const footRightAvatar = document.getElementById('foot-right-avatar');
 
         // Päivitä status
         function updateStatus(message, isError = false) {
@@ -534,25 +425,27 @@
                 updateStatus('Pyydetään kameran käyttöoikeutta...');
                 updateDebugInfo('Pyydetään kameraa...');
                 
-                // Yritä ensin ympäristökameraa (takakamera), sitten etukameraa
+                // Vision Pro:lle käytetään ympäristökameraa (takakamera)
                 let stream;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({
                         video: {
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        }
+                            facingMode: 'environment', // Takakamera AR:aa varten
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        },
+                        audio: false
                     });
                     updateDebugInfo('Ympäristökamera saatu');
                 } catch (environmentError) {
                     console.log('Ympäristökamera ei saatavilla, yritetään etukameraa:', environmentError);
                     stream = await navigator.mediaDevices.getUserMedia({
                         video: {
-                            facingMode: 'user',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        }
+                            facingMode: 'user', // Etukamera
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        },
+                        audio: false
                     });
                     updateDebugInfo('Etukamera saatu');
                 }
@@ -561,12 +454,17 @@
                 cameraVideo.srcObject = stream;
                 
                 // Odota että video latautuu
-                await new Promise((resolve) => {
+                await new Promise((resolve, reject) => {
                     cameraVideo.onloadedmetadata = () => {
                         resolve();
                     };
+                    cameraVideo.onerror = () => {
+                        reject(new Error('Video lataus epäonnistui'));
+                    };
                     // Timeout varmuudeksi
-                    setTimeout(resolve, 1000);
+                    setTimeout(() => {
+                        resolve();
+                    }, 2000);
                 });
                 
                 updateStatus('Kameran käyttöoikeus saatu!');
@@ -612,15 +510,8 @@
             updateDebugInfo('Asetetaan kokemus');
 
             // Päivitä näkymä kokemustilaan
-            cameraContainer.style.display = 'block';
-            
-            // Näytä kaikki avatarin osat
-            headAvatar.style.display = 'block';
-            handLeftAvatar.style.display = 'block';
-            handRightAvatar.style.display = 'block';
-            torsoAvatar.style.display = 'block';
-            footLeftAvatar.style.display = 'block';
-            footRightAvatar.style.display = 'block';
+            experienceContainer.style.display = 'block';
+            childAvatar.style.display = 'block';
             
             uiContainer.classList.add('hidden');
             exitButton.style.display = 'block';
@@ -642,66 +533,53 @@
             
             // Hiiren liikkeet
             document.addEventListener('mousemove', (e) => {
+                if (experienceContainer.style.display === 'none') return;
+                
                 mouseX = e.clientX / window.innerWidth;
                 mouseY = e.clientY / window.innerHeight;
-                updateAvatarPositions(mouseX, mouseY);
+                updateAvatarPosition(mouseX, mouseY);
             });
 
             // Touch-liikkeet
             document.addEventListener('touchmove', (e) => {
+                if (experienceContainer.style.display === 'none') return;
+                
                 if (e.touches.length > 0) {
                     mouseX = e.touches[0].clientX / window.innerWidth;
                     mouseY = e.touches[0].clientY / window.innerHeight;
-                    updateAvatarPositions(mouseX, mouseY);
+                    updateAvatarPosition(mouseX, mouseY);
                 }
             });
 
             // Laitteen liikkeet (jos saatavilla)
             if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientation', (e) => {
+                    if (experienceContainer.style.display === 'none') return;
+                    
                     if (e.beta !== null && e.gamma !== null) {
                         const tiltX = e.gamma / 90;
                         const tiltY = e.beta / 90;
-                        updateAvatarPositions(0.5 + tiltX * 0.3, 0.5 + tiltY * 0.3);
+                        updateAvatarPosition(0.5 + tiltX * 0.3, 0.5 + tiltY * 0.3);
                     }
                 });
             }
 
             // Satunnaiset luonnolliset liikkeet
             setInterval(() => {
-                const headMove = Math.sin(Date.now() * 0.002) * 2;
-                headAvatar.style.transform = `translateX(-50%) translateY(${headMove}px)`;
+                if (experienceContainer.style.display === 'none') return;
                 
-                const handMove = Math.cos(Date.now() * 0.003) * 3;
-                handLeftAvatar.style.transform = `translateY(${handMove}px)`;
-                handRightAvatar.style.transform = `translateY(${handMove}px)`;
-
-                const footMove = Math.sin(Date.now() * 0.004) * 2;
-                footLeftAvatar.style.transform = `translateY(${footMove}px)`;
-                footRightAvatar.style.transform = `translateY(${footMove}px)`;
+                const floatMove = Math.sin(Date.now() * 0.002) * 3;
+                childAvatar.style.transform = `translateX(-50%) translateY(${floatMove}px)`;
             }, 50);
         }
 
-        // Päivitä avatar-sijainnit
-        function updateAvatarPositions(x, y) {
-            // Pään avatar reagoi hieman liikkeisiin
-            const headX = (x - 0.5) * 10;
-            headAvatar.style.transform = `translateX(calc(-50% + ${headX}px))`;
-
-            // Kädet reagoivat enemmän
-            const handX = (x - 0.5) * 15;
-            const handY = (y - 0.5) * 8;
-            handLeftAvatar.style.transform = `translateX(${handX}px) translateY(${handY}px)`;
-            handRightAvatar.style.transform = `translateX(${handX}px) translateY(${handY}px)`;
-
-            // Jalat reagoivat vähemmän
-            const footY = (y - 0.5) * 5;
-            footLeftAvatar.style.transform = `translateY(${footY}px)`;
-            footRightAvatar.style.transform = `translateY(${footY}px)`;
-
-            // Vartalo pysyy suhteellisen paikallaan
-            const torsoY = (y - 0.5) * 6;
-            torsoAvatar.style.transform = `translateX(-50%) translateY(${torsoY}px)`;
+        // Päivitä avatarin sijainti
+        function updateAvatarPosition(x, y) {
+            // Hieman liikettä reagoimisen tunteen luomiseksi
+            const offsetX = (x - 0.5) * 20;
+            const offsetY = (y - 0.5) * 10;
+            
+            childAvatar.style.transform = `translateX(calc(-50% + ${offsetX}px)) translateY(${offsetY}px)`;
         }
 
         // Lopeta kokemus
@@ -717,13 +595,8 @@
 
         // Palauta alkutila
         function resetToInitialState() {
-            cameraContainer.style.display = 'none';
-            headAvatar.style.display = 'none';
-            handLeftAvatar.style.display = 'none';
-            handRightAvatar.style.display = 'none';
-            torsoAvatar.style.display = 'none';
-            footLeftAvatar.style.display = 'none';
-            footRightAvatar.style.display = 'none';
+            experienceContainer.style.display = 'none';
+            childAvatar.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitButton.style.display = 'none';
             loadingElement.style.display = 'none';
