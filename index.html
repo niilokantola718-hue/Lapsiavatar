@@ -106,15 +106,36 @@
             100% { transform: rotate(360deg); }
         }
 
-        #xr-view {
+        #camera-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: transparent;
             display: none;
             z-index: 500;
+            overflow: hidden;
+        }
+
+        #camera-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Peilikuva reaaliaikaiseksi */
+            z-index: 1;
+        }
+
+        #avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 600;
+            pointer-events: none;
         }
 
         #exit-button {
@@ -151,23 +172,68 @@
             display: none !important;
         }
 
-        /* YKSINKERTAISTETTU AVATAR */
-        #child-avatar {
+        /* AVATAR KEHOSSA */
+        .body-part {
             position: absolute;
-            width: 200px;
-            height: 300px;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 600;
-            display: none;
+            z-index: 610;
             pointer-events: none;
+            display: none;
         }
 
-        .avatar-body {
+        /* Pään avatar - sijoitetaan yläosaan */
+        .head-avatar {
+            width: 120px;
+            height: 120px;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Käden avatarit - sijoitetaan sivuille */
+        .hand-avatar {
+            width: 100px;
+            height: 100px;
+            bottom: 30%;
+        }
+
+        .hand-left {
+            left: 10%;
+        }
+
+        .hand-right {
+            right: 10%;
+        }
+
+        /* Vartalon avatar - sijoitetaan keskelle */
+        .torso-avatar {
+            width: 150px;
+            height: 180px;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Jalkojen avatarit - sijoitetaan alhaalle */
+        .foot-avatar {
+            width: 80px;
+            height: 120px;
+            bottom: 5%;
+        }
+
+        .foot-left {
+            left: 35%;
+        }
+
+        .foot-right {
+            right: 35%;
+        }
+
+        /* Avatarin sisäinen rakenne */
+        .avatar {
             position: relative;
             width: 100%;
             height: 100%;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
         }
 
         .avatar-head {
@@ -177,7 +243,7 @@
             background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
             border-radius: 50%;
             top: 0;
-            left: 60px;
+            left: 20px;
             border: 3px solid white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
@@ -214,55 +280,55 @@
             animation: smile 6s infinite;
         }
 
-        .avatar-torso {
+        .avatar-body {
             position: absolute;
             width: 100px;
-            height: 120px;
+            height: 100px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
             border-radius: 40px 40px 20px 20px;
-            top: 70px;
-            left: 50px;
+            top: 50px;
+            left: 25px;
             border: 3px solid white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .avatar-arm {
             position: absolute;
-            width: 20px;
-            height: 80px;
+            width: 15px;
+            height: 60px;
             background: #44A08D;
-            border-radius: 10px;
-            top: 75px;
+            border-radius: 8px;
+            top: 45px;
             animation: wave 4s ease-in-out infinite;
         }
 
         .avatar-arm.left {
-            left: 25px;
+            left: 5px;
             transform-origin: top center;
         }
 
         .avatar-arm.right {
-            right: 25px;
+            right: 5px;
             transform-origin: top center;
             animation-delay: 2s;
         }
 
         .avatar-leg {
             position: absolute;
-            width: 25px;
-            height: 100px;
+            width: 20px;
+            height: 80px;
             background: #44A08D;
-            border-radius: 12px;
-            top: 180px;
+            border-radius: 10px;
+            top: 140px;
             animation: bounce 3s ease-in-out infinite;
         }
 
         .avatar-leg.left {
-            left: 55px;
+            left: 30px;
         }
 
         .avatar-leg.right {
-            right: 55px;
+            right: 30px;
             animation-delay: 1.5s;
         }
 
@@ -285,7 +351,7 @@
 
         @keyframes wave {
             0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-15deg); }
+            50% { transform: rotate(-20deg); }
         }
 
         @keyframes bounce {
@@ -294,8 +360,8 @@
         }
 
         @keyframes gentleFloat {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-5px); }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
         }
 
         .gentle-float {
@@ -314,38 +380,86 @@
             z-index: 1002;
             max-width: 300px;
         }
-
-        #webgl-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            z-index: 1;
-        }
     </style>
 </head>
 <body>
-    <!-- WebGL canvas XR:ää varten -->
-    <canvas id="webgl-canvas"></canvas>
-
-    <!-- XR-näkymä -->
-    <div id="xr-view">
-        <!-- YKSI avatar -->
-        <div id="child-avatar" class="gentle-float">
-            <div class="avatar-body">
-                <div class="avatar-head"></div>
-                <div class="avatar-face">
-                    <div class="avatar-eye left"></div>
-                    <div class="avatar-eye right"></div>
-                    <div class="avatar-mouth"></div>
+    <!-- Kamera ja avatar overlay -->
+    <div id="camera-container">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div id="avatar-overlay">
+            <!-- Pään avatar -->
+            <div class="body-part head-avatar gentle-float" id="head-avatar">
+                <div class="avatar">
+                    <div class="avatar-head"></div>
+                    <div class="avatar-face">
+                        <div class="avatar-eye left"></div>
+                        <div class="avatar-eye right"></div>
+                        <div class="avatar-mouth"></div>
+                    </div>
                 </div>
-                <div class="avatar-torso"></div>
-                <div class="avatar-arm left"></div>
-                <div class="avatar-arm right"></div>
-                <div class="avatar-leg left"></div>
-                <div class="avatar-leg right"></div>
+            </div>
+
+            <!-- Vasemman käden avatar -->
+            <div class="body-part hand-avatar hand-left gentle-float" id="hand-left-avatar">
+                <div class="avatar">
+                    <div class="avatar-head"></div>
+                    <div class="avatar-face">
+                        <div class="avatar-eye left"></div>
+                        <div class="avatar-eye right"></div>
+                        <div class="avatar-mouth"></div>
+                    </div>
+                    <div class="avatar-body"></div>
+                    <div class="avatar-arm left"></div>
+                    <div class="avatar-arm right"></div>
+                </div>
+            </div>
+
+            <!-- Oikean käden avatar -->
+            <div class="body-part hand-avatar hand-right gentle-float" id="hand-right-avatar">
+                <div class="avatar">
+                    <div class="avatar-head"></div>
+                    <div class="avatar-face">
+                        <div class="avatar-eye left"></div>
+                        <div class="avatar-eye right"></div>
+                        <div class="avatar-mouth"></div>
+                    </div>
+                    <div class="avatar-body"></div>
+                    <div class="avatar-arm left"></div>
+                    <div class="avatar-arm right"></div>
+                </div>
+            </div>
+
+            <!-- Vartalon avatar -->
+            <div class="body-part torso-avatar gentle-float" id="torso-avatar">
+                <div class="avatar">
+                    <div class="avatar-head"></div>
+                    <div class="avatar-face">
+                        <div class="avatar-eye left"></div>
+                        <div class="avatar-eye right"></div>
+                        <div class="avatar-mouth"></div>
+                    </div>
+                    <div class="avatar-body"></div>
+                    <div class="avatar-arm left"></div>
+                    <div class="avatar-arm right"></div>
+                    <div class="avatar-leg left"></div>
+                    <div class="avatar-leg right"></div>
+                </div>
+            </div>
+
+            <!-- Vasemman jalan avatar -->
+            <div class="body-part foot-avatar foot-left gentle-float" id="foot-left-avatar">
+                <div class="avatar">
+                    <div class="avatar-leg left"></div>
+                    <div class="avatar-leg right"></div>
+                </div>
+            </div>
+
+            <!-- Oikean jalan avatar -->
+            <div class="body-part foot-avatar foot-right gentle-float" id="foot-right-avatar">
+                <div class="avatar">
+                    <div class="avatar-leg left"></div>
+                    <div class="avatar-leg right"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -355,46 +469,52 @@
         <h1>👶 Lapsi Avatar</h1>
         <div class="subtitle">
             Kokeile olevasi lapsi Vision Pro -laseilla!<br>
-            Avatar tulee näkymään kehoosi kiinnitettynä todellisessa maailmassa.
+            Näet todellisen maailman kameran kautta ja avatarin kehossasi.
         </div>
         
-        <button id="start-button">Käynnistä Avatar</button>
+        <button id="start-button">Käynnistä Lapsikokemus</button>
         
-        <div id="status">Valmistellaan...</div>
+        <div id="status">Valmistellaan kokemusta...</div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan...</p>
+            <p>Alustetaan kameraa...</p>
         </div>
 
         <div class="info-panel">
-            <h3>Miten toimii Vision Pro:lla:</h3>
-            <p>1. Paina "Käynnistä Avatar"</p>
+            <h3>Miten toimii:</h3>
+            <p>1. Paina "Käynnistä Lapsikokemus"</p>
             <p>2. Salli kameran käyttö</p>
-            <p>3. Vision Pro näyttää automaattisesti todellisen maailman</p>
-            <p>4. Avatar ilmestyy kehoosi kiinnitettynä</p>
+            <p>3. Katso ympärillesi - näet todellisen maailman</p>
+            <p>4. Avatar on kiinni kehossasi!</p>
+            <p><strong>Huomio:</strong> Tämä käyttää normaalia kameranäkymää, joka toimii varmasti Vision Pro -laseilla.</p>
         </div>
     </div>
 
-    <button id="exit-button">Lopeta</button>
+    <button id="exit-button">Lopeta Kokemus</button>
     <div class="debug-info" id="debug-info"></div>
 
     <script>
-        // WebGL ja XR muuttujat
-        let xrSession = null;
-        let gl = null;
-        let animationFrameId = null;
+        // Yksinkertainen toteutus ilman WebXR:ää
+        let currentStream = null;
 
         // DOM-elementit
-        const xrView = document.getElementById('xr-view');
-        const webglCanvas = document.getElementById('webgl-canvas');
+        const cameraContainer = document.getElementById('camera-container');
+        const cameraVideo = document.getElementById('camera-video');
         const uiContainer = document.getElementById('ui-container');
         const startButton = document.getElementById('start-button');
         const exitButton = document.getElementById('exit-button');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
-        const childAvatar = document.getElementById('child-avatar');
         const debugInfo = document.getElementById('debug-info');
+        
+        // Avatarin osat
+        const headAvatar = document.getElementById('head-avatar');
+        const handLeftAvatar = document.getElementById('hand-left-avatar');
+        const handRightAvatar = document.getElementById('hand-right-avatar');
+        const torsoAvatar = document.getElementById('torso-avatar');
+        const footLeftAvatar = document.getElementById('foot-left-avatar');
+        const footRightAvatar = document.getElementById('foot-right-avatar');
 
         // Päivitä status
         function updateStatus(message, isError = false) {
@@ -408,103 +528,78 @@
             debugInfo.textContent = info;
         }
 
-        // Alusta WebGL
-        function initWebGL() {
+        // Hanki kameran käyttöoikeus
+        async function getCameraAccess() {
             try {
-                gl = webglCanvas.getContext('webgl', { 
-                    xrCompatible: true,
-                    alpha: false,
-                    antialias: true,
-                    depth: true,
-                    stencil: false
+                updateStatus('Pyydetään kameran käyttöoikeutta...');
+                updateDebugInfo('Pyydetään kameraa...');
+                
+                // Yritä ensin ympäristökameraa (takakamera), sitten etukameraa
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    updateDebugInfo('Ympäristökamera saatu');
+                } catch (environmentError) {
+                    console.log('Ympäristökamera ei saatavilla, yritetään etukameraa:', environmentError);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'user',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    updateDebugInfo('Etukamera saatu');
+                }
+                
+                currentStream = stream;
+                cameraVideo.srcObject = stream;
+                
+                // Odota että video latautuu
+                await new Promise((resolve) => {
+                    cameraVideo.onloadedmetadata = () => {
+                        resolve();
+                    };
+                    // Timeout varmuudeksi
+                    setTimeout(resolve, 1000);
                 });
-
-                if (!gl) {
-                    throw new Error('WebGL ei saatavilla');
-                }
-
-                // Aseta perus WebGL asetukset
-                gl.clearColor(0.0, 0.0, 0.0, 0.0);
-                gl.enable(gl.DEPTH_TEST);
-                gl.enable(gl.CULL_FACE);
-
-                updateDebugInfo('WebGL alustettu');
+                
+                updateStatus('Kameran käyttöoikeus saatu!');
+                updateDebugInfo('Kamera valmis');
                 return true;
+                
             } catch (error) {
-                console.error('WebGL alustus epäonnistui:', error);
-                updateDebugInfo('WebGL virhe: ' + error.message);
+                console.error('Kameran käyttöoikeus epäonnistui:', error);
+                updateStatus('Kameran käyttöoikeus epäonnistui: ' + error.message, true);
+                updateDebugInfo('Kamera virhe: ' + error.message);
                 return false;
             }
         }
 
-        // Tarkista XR-tuki
-        async function checkXRSupport() {
-            updateDebugInfo('Tarkistetaan WebXR-tukea...');
-            
-            if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla. Käytä Vision Pro -laseja ja Safaria.', true);
-                startButton.disabled = true;
-                return false;
-            }
-
-            try {
-                // Yritä ensin VR:ää (Vision Pro käyttää tätä pass-through:lla)
-                updateDebugInfo('Tarkistetaan immersive-vr -tukea...');
-                const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                
-                if (vrSupported) {
-                    updateStatus('VR-tila tuettu! Vision Pro näyttää todellisen maailman pass-through:lla.');
-                    updateDebugInfo('immersive-vr tuettu');
-                    return 'vr';
-                }
-
-                // Sitten AR:aa
-                updateDebugInfo('Tarkistetaan immersive-ar -tukea...');
-                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                
-                if (arSupported) {
-                    updateStatus('AR-tila tuettu!');
-                    updateDebugInfo('immersive-ar tuettu');
-                    return 'ar';
-                }
-
-                updateStatus('XR-tiloja ei tuettu.', true);
-                startButton.disabled = true;
-                updateDebugInfo('Ei XR-tukea');
-                return false;
-
-            } catch (error) {
-                console.error('XR-tuen tarkistus epäonnistui:', error);
-                updateStatus('Tekninen virhe XR-tarkistuksessa.', true);
-                updateDebugInfo('XR-tarkistus virhe: ' + error.message);
-                startButton.disabled = true;
-                return false;
-            }
-        }
-
-        // Käynnistä XR-kokemus
-        async function startXRExperience() {
+        // Käynnistä lapsikokemus
+        async function startChildExperience() {
             try {
                 loadingElement.style.display = 'block';
                 startButton.disabled = true;
-                updateStatus('Käynnistetään XR-kokemusta...');
-                updateDebugInfo('Aloitetaan XR');
+                updateStatus('Aloitetaan lapsikokemus...');
+                updateDebugInfo('Aloitetaan kokemus');
 
-                // Alusta WebGL ensin
-                if (!initWebGL()) {
-                    throw new Error('WebGL alustus epäonnistui');
+                // 1. Hanki kameran käyttöoikeus
+                const cameraAccess = await getCameraAccess();
+                if (!cameraAccess) {
+                    throw new Error('Kameran käyttöoikeutta ei saatu');
                 }
 
-                const xrSupport = await checkXRSupport();
-                
-                if (xrSupport === 'vr' || xrSupport === 'ar') {
-                    await startXRSession(xrSupport);
-                } else {
-                    await startBasicExperience();
-                }
+                // 2. Aseta kokemus
+                setupExperience();
 
             } catch (error) {
-                console.error('XR-kokemuksen käynnistys epäonnistui:', error);
+                console.error('Kokemuksen käynnistys epäonnistui:', error);
                 loadingElement.style.display = 'none';
                 startButton.disabled = false;
                 updateStatus('Käynnistys epäonnistui: ' + error.message, true);
@@ -512,79 +607,21 @@
             }
         }
 
-        // Käynnistä XR-sessio
-        async function startXRSession(mode) {
-            try {
-                updateStatus(`Käynnistetään ${mode.toUpperCase()}-sessiota...`);
-                updateDebugInfo(`Käynnistetään ${mode}`);
+        // Aseta kokemus
+        function setupExperience() {
+            updateDebugInfo('Asetetaan kokemus');
 
-                const sessionType = mode === 'ar' ? 'immersive-ar' : 'immersive-vr';
-                
-                const session = await navigator.xr.requestSession(sessionType, {
-                    requiredFeatures: ['local'],
-                    optionalFeatures: ['dom-overlay']
-                });
-
-                xrSession = session;
-                
-                // Tee WebGL XR-yhteensopivaksi
-                await gl.makeXRCompatible();
-                
-                // Aseta renderöintitila
-                const layer = new XRWebGLLayer(session, gl);
-                session.updateRenderState({ 
-                    baseLayer: layer,
-                    depthNear: 0.1,
-                    depthFar: 100.0
-                });
-
-                // Aseta kokemus
-                setupXRExperience(session, mode);
-
-                // Aloita renderöinti
-                animationFrameId = session.requestAnimationFrame(onXRFrame);
-
-            } catch (error) {
-                console.error(`${mode.toUpperCase()}-sessio epäonnistui:`, error);
-                throw error;
-            }
-        }
-
-        // XR-renderöintisilmukka
-        function onXRFrame(time, frame) {
-            if (!xrSession) return;
-
-            const pose = frame.getViewerPose(xrSession.renderState.referenceSpace);
+            // Päivitä näkymä kokemustilaan
+            cameraContainer.style.display = 'block';
             
-            if (pose) {
-                const layer = xrSession.renderState.baseLayer;
-                gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-                
-                // Tyhjennä näyttö
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                
-                // Renderöi jokaiselle näkymälle (silmät)
-                for (const view of pose.views) {
-                    const viewport = layer.getViewport(view);
-                    gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                    
-                    // Tässä voisi olla 3D-renderöintiä, mutta käytämme HTML-avataria
-                    // joten teemme vain perus clear -operaation
-                }
-            }
-
-            // Jatka renderöintiä
-            animationFrameId = xrSession.requestAnimationFrame(onXRFrame);
-        }
-
-        // Aseta XR-kokemus
-        function setupXRExperience(session, mode) {
-            updateDebugInfo(`Asetetaan ${mode}-kokemus`);
-
-            // Näytä XR-näkymä ja avatar
-            xrView.style.display = 'block';
-            childAvatar.style.display = 'block';
-            webglCanvas.style.display = 'block';
+            // Näytä kaikki avatarin osat
+            headAvatar.style.display = 'block';
+            handLeftAvatar.style.display = 'block';
+            handRightAvatar.style.display = 'block';
+            torsoAvatar.style.display = 'block';
+            footLeftAvatar.style.display = 'block';
+            footRightAvatar.style.display = 'block';
+            
             uiContainer.classList.add('hidden');
             exitButton.style.display = 'block';
             loadingElement.style.display = 'none';
@@ -592,106 +629,101 @@
             // Aloita liikkeiden seuraaminen
             startMovementTracking();
 
-            session.addEventListener('end', onSessionEnded);
-
-            updateStatus(`${mode.toUpperCase()} aktiivinen! Liiku ja katso ympärillesi nähdäksesi avatarin kehossasi.`);
-            updateDebugInfo(`${mode} aktiivinen`);
-        }
-
-        // Perus kokemus (fallback)
-        async function startBasicExperience() {
-            try {
-                updateStatus('Käynnistetään perus kokemusta...');
-                updateDebugInfo('Käynnistetään basic');
-
-                // Näytä avatar ilman XR:ää
-                xrView.style.display = 'block';
-                childAvatar.style.display = 'block';
-                uiContainer.classList.add('hidden');
-                exitButton.style.display = 'block';
-                loadingElement.style.display = 'none';
-
-                startMovementTracking();
-
-                updateStatus('Perus kokemus aktiivinen! Käytä hiirtä/touchia liikuttaaksesi avataria.');
-                updateDebugInfo('Basic aktiivinen');
-
-            } catch (error) {
-                console.error('Perus kokemus epäonnistui:', error);
-                throw error;
-            }
+            updateStatus('Lapsikokemus aktiivinen! Liiku ja katso ympärillesi nähdäksesi avatarin kehossasi.');
+            updateDebugInfo('Kokemus aktiivinen');
         }
 
         // Liikkeiden seuraaminen
         function startMovementTracking() {
             updateDebugInfo('Aloitetaan liikkeiden seuranta');
-
+            
             let mouseX = 0;
             let mouseY = 0;
             
+            // Hiiren liikkeet
             document.addEventListener('mousemove', (e) => {
                 mouseX = e.clientX / window.innerWidth;
                 mouseY = e.clientY / window.innerHeight;
-                updateAvatarPosition(mouseX, mouseY);
+                updateAvatarPositions(mouseX, mouseY);
             });
 
+            // Touch-liikkeet
             document.addEventListener('touchmove', (e) => {
                 if (e.touches.length > 0) {
                     mouseX = e.touches[0].clientX / window.innerWidth;
                     mouseY = e.touches[0].clientY / window.innerHeight;
-                    updateAvatarPosition(mouseX, mouseY);
+                    updateAvatarPositions(mouseX, mouseY);
                 }
             });
 
-            // Laitteen liikkeet
+            // Laitteen liikkeet (jos saatavilla)
             if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientation', (e) => {
                     if (e.beta !== null && e.gamma !== null) {
                         const tiltX = e.gamma / 90;
                         const tiltY = e.beta / 90;
-                        updateAvatarPosition(0.5 + tiltX * 0.3, 0.5 + tiltY * 0.3);
+                        updateAvatarPositions(0.5 + tiltX * 0.3, 0.5 + tiltY * 0.3);
                     }
                 });
             }
+
+            // Satunnaiset luonnolliset liikkeet
+            setInterval(() => {
+                const headMove = Math.sin(Date.now() * 0.002) * 2;
+                headAvatar.style.transform = `translateX(-50%) translateY(${headMove}px)`;
+                
+                const handMove = Math.cos(Date.now() * 0.003) * 3;
+                handLeftAvatar.style.transform = `translateY(${handMove}px)`;
+                handRightAvatar.style.transform = `translateY(${handMove}px)`;
+
+                const footMove = Math.sin(Date.now() * 0.004) * 2;
+                footLeftAvatar.style.transform = `translateY(${footMove}px)`;
+                footRightAvatar.style.transform = `translateY(${footMove}px)`;
+            }, 50);
         }
 
-        // Päivitä avatarin sijainti
-        function updateAvatarPosition(x, y) {
-            // Hieman liikettä reagoimisen tunteen luomiseksi
-            const offsetX = (x - 0.5) * 20;
-            const offsetY = (y - 0.5) * 10;
-            
-            childAvatar.style.transform = `translateX(calc(-50% + ${offsetX}px)) translateY(${offsetY}px)`;
+        // Päivitä avatar-sijainnit
+        function updateAvatarPositions(x, y) {
+            // Pään avatar reagoi hieman liikkeisiin
+            const headX = (x - 0.5) * 10;
+            headAvatar.style.transform = `translateX(calc(-50% + ${headX}px))`;
+
+            // Kädet reagoivat enemmän
+            const handX = (x - 0.5) * 15;
+            const handY = (y - 0.5) * 8;
+            handLeftAvatar.style.transform = `translateX(${handX}px) translateY(${handY}px)`;
+            handRightAvatar.style.transform = `translateX(${handX}px) translateY(${handY}px)`;
+
+            // Jalat reagoivat vähemmän
+            const footY = (y - 0.5) * 5;
+            footLeftAvatar.style.transform = `translateY(${footY}px)`;
+            footRightAvatar.style.transform = `translateY(${footY}px)`;
+
+            // Vartalo pysyy suhteellisen paikallaan
+            const torsoY = (y - 0.5) * 6;
+            torsoAvatar.style.transform = `translateX(-50%) translateY(${torsoY}px)`;
         }
 
-        // Käsittele session päättyminen
-        function onSessionEnded() {
-            console.log('XR-sessio päättynyt');
-            updateDebugInfo('Session päättynyt');
-            
-            // Pysäytä renderöinti
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
+        // Lopeta kokemus
+        function endExperience() {
+            // Pysäytä kamera
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
             }
             
             resetToInitialState();
         }
 
-        // Lopeta kokemus
-        function endExperience() {
-            if (xrSession) {
-                xrSession.end();
-            } else {
-                resetToInitialState();
-            }
-        }
-
         // Palauta alkutila
         function resetToInitialState() {
-            xrView.style.display = 'none';
-            childAvatar.style.display = 'none';
-            webglCanvas.style.display = 'none';
+            cameraContainer.style.display = 'none';
+            headAvatar.style.display = 'none';
+            handLeftAvatar.style.display = 'none';
+            handRightAvatar.style.display = 'none';
+            torsoAvatar.style.display = 'none';
+            footLeftAvatar.style.display = 'none';
+            footRightAvatar.style.display = 'none';
             uiContainer.classList.remove('hidden');
             exitButton.style.display = 'none';
             loadingElement.style.display = 'none';
@@ -702,16 +734,14 @@
         }
 
         // Alusta sovellus
-        async function initializeApp() {
+        function initializeApp() {
             console.log('Alustetaan Lapsi Avatar -sovellusta...');
             updateDebugInfo('Alustetaan...');
 
-            await checkXRSupport();
-            
-            startButton.addEventListener('click', startXRExperience);
+            startButton.addEventListener('click', startChildExperience);
             exitButton.addEventListener('click', endExperience);
             
-            updateStatus('Valmis! Paina "Käynnistä Avatar" aloittaaksesi.');
+            updateStatus('Valmis! Paina "Käynnistä Lapsikokemus" aloittaaksesi.');
             updateDebugInfo('Valmis, odotetaan käyttäjää');
         }
 
