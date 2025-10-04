@@ -1,497 +1,135 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar - Vision Pro AR</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lapsi Avatar AR - Vision Pro</title>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #000;
-            color: white;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
+            background-color: #000;
         }
-
-        #ui-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-        }
-
-        h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            color: #ff6b6b;
-            text-align: center;
-        }
-
-        .subtitle {
-            font-size: 1.3em;
-            margin-bottom: 30px;
-            text-align: center;
-            max-width: 80%;
-            line-height: 1.5;
-        }
-
-        #start-button {
-            padding: 20px 40px;
-            background: linear-gradient(45deg, #4ECDC4, #44A08D);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 1.3em;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
-            transition: all 0.3s ease;
-            margin: 10px;
-        }
-
-        #start-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(78, 205, 196, 0.4);
-        }
-
-        #start-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 1.1em;
-            text-align: center;
-            padding: 0 20px;
-            min-height: 60px;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            border: 4px solid rgba(255, 107, 107, 0.3);
-            border-top: 4px solid #ff6b6b;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #xr-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-        }
-
-        #webgl-canvas {
+        #arButton {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-        }
-
-        #exit-button {
-            position: fixed;
-            top: 30px;
-            right: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             padding: 12px 24px;
-            background: #ff6b6b;
+            background-color: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
             color: white;
-            border: none;
-            border-radius: 20px;
-            font-size: 1em;
+            border-radius: 8px;
+            z-index: 1000;
             cursor: pointer;
-            z-index: 1001;
-            display: none;
-        }
-
-        .info-panel {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 20px;
-            margin-top: 30px;
-            max-width: 500px;
-            text-align: left;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
-        .info-panel h3 {
-            color: #4ECDC4;
-            margin-bottom: 10px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .debug-info {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
+        #info {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
             color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 1002;
-            max-width: 300px;
+            text-align: center;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
-    <!-- XR Container - Vision Pro hoitaa kameran näyttämisen -->
-    <div id="xr-container">
-        <canvas id="webgl-canvas"></canvas>
-    </div>
+    <button id="arButton">Käynnistä AR-kokemus</button>
+    <div id="info">Päästäkseen lapsen avatarin kehoon AR-tilassa</div>
 
-    <!-- UI container -->
-    <div id="ui-container">
-        <h1>👶 Lapsi Avatar AR</h1>
-        <div class="subtitle">
-            Kokeile olevasi lapsi Vision Pro -laseilla!<br>
-            Avatar tulee näkymään kehoosi kiinnitettynä todellisessa maailmassa.
-        </div>
-        
-        <button id="start-button">Käynnistä AR-Avatar</button>
-        
-        <div id="status">Tarkistetaan Vision Pro -tukea...</div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Alustetaan AR-ympäristöä...</p>
-        </div>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.module.js';
+        import { WebXRManager } from 'https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/loaders/GLTFLoader.js';
 
-        <div class="info-panel">
-            <h3>Vision Pro -AR toimii näin:</h3>
-            <p>1. Paina "Käynnistä AR-Avatar"</p>
-            <p>2. Vision Pro käyttää pass-through -kameraa</p>
-            <p>3. Näet oman ympäristösi ja avatarin kehossasi</p>
-            <p>4. <strong>Ei ruutua</strong> - näet suoraan maailman lasien kautta</p>
-            <p>5. Vihreä valo ylälaidassa = kamera aktiivinen ✅</p>
-        </div>
-    </div>
+        let camera, scene, renderer;
+        let controller;
 
-    <button id="exit-button">Lopeta AR</button>
-    <div class="debug-info" id="debug-info"></div>
+        init();
+        animate();
 
-    <script>
-        // Vision Pro WebXR -toteutus
-        let xrSession = null;
-        let gl = null;
-        let animationFrameId = null;
-
-        // DOM-elementit
-        const xrContainer = document.getElementById('xr-container');
-        const webglCanvas = document.getElementById('webgl-canvas');
-        const uiContainer = document.getElementById('ui-container');
-        const startButton = document.getElementById('start-button');
-        const exitButton = document.getElementById('exit-button');
-        const statusElement = document.getElementById('status');
-        const loadingElement = document.getElementById('loading');
-        const debugInfo = document.getElementById('debug-info');
-
-        // Päivitä status
-        function updateStatus(message, isError = false) {
-            statusElement.textContent = message;
-            statusElement.style.color = isError ? '#ff6b6b' : '#4ECDC4';
-            console.log('Status:', message);
-        }
-
-        // Päivitä debug-tiedot
-        function updateDebugInfo(info) {
-            debugInfo.textContent = info;
-        }
-
-        // Tarkista XR-tuki Vision Pro:lle
-        async function checkXRSupport() {
-            updateDebugInfo('Tarkistetaan WebXR-tukea...');
+        function init() {
+            scene = new THREE.Scene();
             
+            // Kamera - lapsen näkökulma (matalampi)
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+            camera.position.set(0, 0.8, 0); // Lapsen silmien korkeus ~80cm
+
+            // Renderöijä
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Valaistus
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Yksinkertainen lapsiavatar (kuutio testaamiseen)
+            const avatarGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.2);
+            const avatarMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.7
+            });
+            const avatar = new THREE.Mesh(avatarGeometry, avatarMaterial);
+            avatar.position.y = 0.4; // Keskitetty matalampaan korkeuteen
+            scene.add(avatar);
+
+            // AR-painike
+            const arButton = document.getElementById('arButton');
+            arButton.addEventListener('click', startAR);
+
+            // Resize handling
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        async function startAR() {
             if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla. Käytä Vision Pro -laseja Safarilla.', true);
-                return false;
+                alert('WebXR ei ole tuettu tässä selaimessa');
+                return;
             }
 
             try {
-                // Vision Pro käyttää yleensä immersive-vr pass-through:lla
-                updateDebugInfo('Tarkistetaan immersive-vr -tukea...');
-                const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                
-                if (vrSupported) {
-                    updateStatus('Vision Pro AR-tila tuettu!');
-                    updateDebugInfo('immersive-vr tuettu (pass-through AR)');
-                    return 'vr';
-                }
-
-                // Tai immersive-ar
-                updateDebugInfo('Tarkistetaan immersive-ar -tukea...');
-                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                
-                if (arSupported) {
-                    updateStatus('Vision Pro AR-tila tuettu!');
-                    updateDebugInfo('immersive-ar tuettu');
-                    return 'ar';
-                }
-
-                updateStatus('Vision Pro AR-ei saatavilla.', true);
-                updateDebugInfo('Ei XR-tukea');
-                return false;
-
-            } catch (error) {
-                console.error('XR-tarkistus epäonnistui:', error);
-                updateStatus('Vision Pro -tarkistus epäonnistui.', true);
-                updateDebugInfo('XR-virhe: ' + error.message);
-                return false;
-            }
-        }
-
-        // Alusta WebGL
-        function initWebGL() {
-            try {
-                gl = webglCanvas.getContext('webgl', {
-                    xrCompatible: true,
-                    alpha: false,
-                    antialias: true,
-                    depth: true,
-                    stencil: false
+                // Pyydä AR-sessio
+                const session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['local-floor', 'hit-test']
                 });
 
-                if (!gl) {
-                    throw new Error('WebGL ei saatavilla');
-                }
+                renderer.xr.setSession(session);
+                
+                document.getElementById('arButton').style.display = 'none';
+                document.getElementById('info').style.display = 'none';
 
-                // Yksinkertaiset WebGL-asetukset
-                gl.clearColor(0.0, 0.0, 0.0, 0.0); // Läpinäkyvä tausta
-                gl.enable(gl.DEPTH_TEST);
-                gl.enable(gl.CULL_FACE);
-
-                updateDebugInfo('WebGL alustettu');
-                return true;
+                // Lisää kontrollit interaktiota varten
+                controller = renderer.xr.getController(0);
+                scene.add(controller);
 
             } catch (error) {
-                console.error('WebGL alustus epäonnistui:', error);
-                updateDebugInfo('WebGL-virhe: ' + error.message);
-                return false;
+                console.error('AR-session aloituksen virhe:', error);
+                alert('AR-kokemuksen aloitus epäonnistui: ' + error.message);
             }
         }
 
-        // Käynnistä XR-kokemus
-        async function startXRExperience() {
-            try {
-                loadingElement.style.display = 'block';
-                startButton.disabled = true;
-                updateStatus('Käynnistetään Vision Pro AR:aa...');
-                updateDebugInfo('Aloitetaan XR');
-
-                // Alusta WebGL ensin
-                if (!initWebGL()) {
-                    throw new Error('WebGL alustus epäonnistui');
-                }
-
-                const xrSupport = await checkXRSupport();
-                
-                if (xrSupport) {
-                    await startXRSession(xrSupport);
-                } else {
-                    throw new Error('XR-tukea ei saatavilla');
-                }
-
-            } catch (error) {
-                console.error('XR-käynnistys epäonnistui:', error);
-                loadingElement.style.display = 'none';
-                startButton.disabled = false;
-                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Lopullinen virhe: ' + error.message);
-            }
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Käynnistä XR-sessio
-        async function startXRSession(mode) {
-            try {
-                updateStatus(`Käynnistetään ${mode.toUpperCase()}-sessiota...`);
-                updateDebugInfo(`Käynnistetään ${mode}`);
-
-                const sessionType = mode === 'ar' ? 'immersive-ar' : 'immersive-vr';
-                
-                // Vision Pro -optimoitu session alustus
-                const session = await navigator.xr.requestSession(sessionType, {
-                    requiredFeatures: ['local'],
-                    optionalFeatures: ['dom-overlay', 'layers', 'light-estimation']
-                });
-
-                xrSession = session;
-                
-                // Tee WebGL XR-yhteensopivaksi
-                await gl.makeXRCompatible();
-                
-                // Aseta renderöintitila
-                const layer = new XRWebGLLayer(session, gl);
-                session.updateRenderState({ 
-                    baseLayer: layer,
-                    depthNear: 0.1,
-                    depthFar: 100.0
-                });
-
-                // Aseta canvas koko
-                webglCanvas.width = layer.framebufferWidth;
-                webglCanvas.height = layer.framebufferHeight;
-
-                // Siirry XR-näkymään
-                setupXRView();
-
-                // Aloita renderöinti
-                animationFrameId = session.requestAnimationFrame(onXRFrame);
-
-                // Käsittele session päättyminen
-                session.addEventListener('end', onXRSessionEnded);
-
-                updateStatus('Vision Pro AR aktiivinen! Liiku ympäriinsä nähdäksesi avatarin.');
-                updateDebugInfo(`${mode} sessio aktiivinen`);
-
-            } catch (error) {
-                console.error(`${mode}-sessio epäonnistui:`, error);
-                throw error;
-            }
+        function animate() {
+            renderer.setAnimationLoop(render);
         }
 
-        // Aseta XR-näkymä
-        function setupXRView() {
-            xrContainer.style.display = 'block';
-            webglCanvas.style.display = 'block';
-            uiContainer.classList.add('hidden');
-            exitButton.style.display = 'block';
-            loadingElement.style.display = 'none';
+        function render() {
+            renderer.render(scene, camera);
         }
-
-        // XR-renderöintisilmukka
-        function onXRFrame(time, frame) {
-            if (!xrSession) return;
-
-            const pose = frame.getViewerPose(xrSession.renderState.referenceSpace);
-            
-            if (pose) {
-                const layer = xrSession.renderState.baseLayer;
-                gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-                
-                // Tyhjennä näyttö läpinäkyvällä
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-                // Renderöi jokaiselle näkymälle (silmät)
-                for (const view of pose.views) {
-                    const viewport = layer.getViewport(view);
-                    gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                    
-                    // Tässä voitaisiin renderöidä 3D-avaratit
-                    // Mutta nyt tyhjennetään vain näyttö jotta Vision Pro:n
-                    // oma pass-through -kuva näkyy taustalla
-                }
-            }
-
-            // Jatka renderöintiä
-            animationFrameId = xrSession.requestAnimationFrame(onXRFrame);
-        }
-
-        // Käsittele XR-session päättyminen
-        function onXRSessionEnded() {
-            console.log('XR-sessio päättynyt');
-            updateDebugInfo('Session päättynyt');
-            
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            
-            resetToInitialState();
-        }
-
-        // Lopeta XR-kokemus
-        function endXRExperience() {
-            if (xrSession) {
-                xrSession.end();
-            } else {
-                resetToInitialState();
-            }
-        }
-
-        // Palauta alkutila
-        function resetToInitialState() {
-            xrContainer.style.display = 'none';
-            webglCanvas.style.display = 'none';
-            uiContainer.classList.remove('hidden');
-            exitButton.style.display = 'none';
-            loadingElement.style.display = 'none';
-            startButton.disabled = false;
-            
-            updateStatus('AR-kokemus päättynyt. Voit käynnistää uudestaan!');
-            updateDebugInfo('Alkutila palautettu');
-        }
-
-        // Alusta sovellus
-        async function initializeApp() {
-            console.log('Alustetaan Vision Pro Lapsi Avatar -sovellusta...');
-            updateDebugInfo('Alustetaan...');
-
-            const xrSupported = await checkXRSupport();
-            
-            if (xrSupported) {
-                startButton.addEventListener('click', startXRExperience);
-                exitButton.addEventListener('click', endXRExperience);
-                
-                updateStatus('Valmis! Paina "Käynnistä AR-Avatar" aloittaaksesi.');
-                updateDebugInfo('Valmis, odotetaan käyttäjää');
-            } else {
-                startButton.disabled = true;
-            }
-        }
-
-        // Käynnistä sovellus
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
-        }
-
-        // Käsittele virheet
-        window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
-            updateStatus('Tapahtui odottamaton virhe.', true);
-            updateDebugInfo('Global virhe: ' + event.error.message);
-        });
-
     </script>
 </body>
 </html>
