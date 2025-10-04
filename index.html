@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar AR - Vision Pro</title>
+    <title>Lapsi Avatar - Ensimmäinen Henkilön Kokemus</title>
     <style>
         * {
             margin: 0;
@@ -51,7 +51,7 @@
             line-height: 1.5;
         }
 
-        #ar-button {
+        #experience-button {
             padding: 20px 40px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
             color: white;
@@ -65,12 +65,12 @@
             margin: 10px;
         }
 
-        #ar-button:hover {
+        #experience-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 12px 30px rgba(78, 205, 196, 0.4);
         }
 
-        #ar-button:disabled {
+        #experience-button:disabled {
             background: #cccccc;
             cursor: not-allowed;
             transform: none;
@@ -106,18 +106,19 @@
             100% { transform: rotate(360deg); }
         }
 
-        #ar-view {
+        #first-person-view {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: transparent;
+            background: #87CEEB; /* Taivaansininen tausta */
             display: none;
             z-index: 500;
+            overflow: hidden;
         }
 
-        #exit-ar {
+        #exit-experience {
             position: fixed;
             top: 30px;
             right: 30px;
@@ -151,182 +152,199 @@
             display: none !important;
         }
 
-        /* AVATAR KEHOON SIIRTYMINEN - UUDET TYYLIT */
-        .body-anchored-avatar {
+        /* ENSIMMÄISEN HENKILÖN NÄKÖKULMA - AVATARIN KEHO */
+        .child-body {
             position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 400px;
             z-index: 600;
-            display: none;
             pointer-events: none;
         }
 
-        /* Pään avatar - näkyy peilinä tai itsestä katsottuna */
-        .head-avatar {
-            width: 120px;
-            height: 120px;
-            bottom: 100px;
-            right: 50px;
-            transform: scale(0.8);
-        }
-
-        /* Käden avatar - näkyy sivulta */
-        .hand-avatar {
-            width: 80px;
-            height: 80px;
-            bottom: 50px;
-            left: 30px;
-            transform: scale(0.6);
-        }
-
-        /* Kehon avatar - näkyy alhaalta päin katsottuna */
-        .body-avatar {
-            width: 150px;
-            height: 200px;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) scale(0.7);
-        }
-
-        .avatar {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .avatar-head {
+        /* Pään osat - näet omat hiukset yläpuolellasi */
+        .child-hair {
             position: absolute;
-            width: 80px;
+            width: 120px;
             height: 80px;
+            background: linear-gradient(45deg, #8B4513, #A52A2A);
+            border-radius: 60px 60px 0 0;
+            top: -40px;
+            left: 90px;
+            transform: perspective(500px) rotateX(10deg);
+        }
+
+        .child-bangs {
+            position: absolute;
+            width: 100px;
+            height: 30px;
+            background: #8B4513;
+            border-radius: 20px;
+            top: -20px;
+            left: 100px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Kädet - näet omat kätesi */
+        .child-hand {
+            position: absolute;
+            width: 40px;
+            height: 60px;
             background: linear-gradient(45deg, #FFB8A4, #FFD6CC);
-            border-radius: 50%;
-            top: 0;
-            left: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            bottom: 120px;
+        }
+
+        .child-hand.left {
+            left: 30px;
+            transform: rotate(-15deg);
+            animation: handMoveLeft 4s ease-in-out infinite;
+        }
+
+        .child-hand.right {
+            right: 30px;
+            transform: rotate(15deg);
+            animation: handMoveRight 4s ease-in-out infinite 2s;
+        }
+
+        /* Vartalo - näet omat vaatteesi */
+        .child-torso {
+            position: absolute;
+            width: 140px;
+            height: 160px;
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            border-radius: 70px 70px 20px 20px;
+            bottom: 120px;
+            left: 80px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             border: 3px solid white;
         }
 
-        .avatar-face {
+        .child-shirt {
+            position: absolute;
+            width: 120px;
+            height: 80px;
+            background: #FF6B6B;
+            border-radius: 60px 60px 0 0;
+            top: 20px;
+            left: 10px;
+        }
+
+        /* Jalat - näet omat jalkasi */
+        .child-leg {
             position: absolute;
             width: 50px;
-            height: 45px;
-            top: 20px;
-            left: 15px;
-        }
-
-        .avatar-eye {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: #333;
-            border-radius: 50%;
-            top: 15px;
-        }
-
-        .avatar-eye.left { 
-            left: 10px; 
-            animation: blink 4s infinite;
-        }
-        .avatar-eye.right { 
-            left: 30px; 
-            animation: blink 4s infinite 0.5s;
-        }
-
-        .avatar-mouth {
-            position: absolute;
-            width: 20px;
-            height: 10px;
-            background: #ff6b6b;
-            border-radius: 0 0 10px 10px;
-            top: 35px;
-            left: 15px;
-            animation: smile 6s infinite;
-        }
-
-        .avatar-body {
-            position: absolute;
-            width: 90px;
-            height: 90px;
+            height: 120px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
-            border-radius: 35px 35px 15px 15px;
-            top: 70px;
-            left: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-            border: 3px solid white;
+            border-radius: 25px;
+            bottom: 0;
         }
 
-        .avatar-arm {
+        .child-leg.left {
+            left: 90px;
+            animation: legSwing 3s ease-in-out infinite;
+        }
+
+        .child-leg.right {
+            right: 90px;
+            animation: legSwing 3s ease-in-out infinite 1.5s;
+        }
+
+        .child-shoe {
             position: absolute;
-            width: 15px;
-            height: 45px;
-            background: #44A08D;
-            border-radius: 7px;
-            top: 75px;
+            width: 60px;
+            height: 25px;
+            background: #333;
+            border-radius: 10px;
+            bottom: 0;
+            left: -5px;
         }
 
-        .avatar-arm.left {
-            left: 5px;
-            transform-origin: top center;
-            animation: wave 5s infinite;
-        }
-
-        .avatar-arm.right {
-            right: 5px;
-            transform-origin: top center;
-            animation: wave 5s infinite 2.5s;
-        }
-
-        .avatar-leg {
+        /* Ympäristö lapsen näkökulmasta */
+        .child-perspective {
             position: absolute;
-            width: 18px;
-            height: 50px;
-            background: #44A08D;
-            border-radius: 9px;
-            top: 150px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
 
-        .avatar-leg.left {
-            left: 25px;
-            animation: walk 3s infinite;
+        .large-object {
+            position: absolute;
+            background: #FFD700;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
-        .avatar-leg.right {
-            right: 25px;
-            animation: walk 3s infinite 1.5s;
+        .tall-chair {
+            width: 200px;
+            height: 400px;
+            bottom: 0;
+            right: 100px;
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+        }
+
+        .big-table {
+            width: 500px;
+            height: 300px;
+            bottom: 0;
+            left: 100px;
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+        }
+
+        .huge-toy {
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            animation: toyBounce 5s ease-in-out infinite;
         }
 
         /* Animaatiot */
-        @keyframes blink {
-            0%, 90%, 100% { height: 12px; }
-            95% { height: 2px; }
+        @keyframes handMoveLeft {
+            0%, 100% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(-25deg) translateY(-10px); }
         }
 
-        @keyframes smile {
-            0%, 90%, 100% { 
-                border-radius: 0 0 10px 10px;
-                height: 10px;
-            }
-            95% { 
-                border-radius: 10px;
-                height: 5px;
-            }
+        @keyframes handMoveRight {
+            0%, 100% { transform: rotate(15deg) translateY(0); }
+            50% { transform: rotate(25deg) translateY(-10px); }
         }
 
-        @keyframes wave {
+        @keyframes legSwing {
             0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-25deg); }
+            50% { transform: rotate(5deg); }
         }
 
-        @keyframes walk {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-5px) rotate(8deg); }
+        @keyframes toyBounce {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        @keyframes gentleFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-3px) rotate(1deg); }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
 
-        .gentle-float {
-            animation: gentleFloat 4s ease-in-out infinite;
+        .breathing {
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        /* Lapsen näkökulman efektit */
+        .child-vision-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.1) 100%);
+            pointer-events: none;
+            z-index: 700;
         }
 
         .debug-info {
@@ -344,99 +362,78 @@
     </style>
 </head>
 <body>
-    <!-- AR-näkymä - AVATAR KEHOON KIINNITETTYNÄ -->
-    <div id="ar-view">
-        <!-- Pään avatar (näet itsesi peilikuvana) -->
-        <div class="body-anchored-avatar head-avatar gentle-float" id="head-avatar">
-            <div class="avatar">
-                <div class="avatar-head"></div>
-                <div class="avatar-face">
-                    <div class="avatar-eye left"></div>
-                    <div class="avatar-eye right"></div>
-                    <div class="avatar-mouth"></div>
-                </div>
-            </div>
+    <!-- Ensimmäisen henkilön näkökulma - näet maailman lapsen silmin -->
+    <div id="first-person-view">
+        <div class="child-perspective">
+            <!-- Suuret esineet lapsen näkökulmasta -->
+            <div class="large-object tall-chair"></div>
+            <div class="large-object big-table"></div>
+            <div class="large-object huge-toy"></div>
         </div>
-
-        <!-- Käden avatar (näet kätesi sijasta) -->
-        <div class="body-anchored-avatar hand-avatar gentle-float" id="hand-avatar">
-            <div class="avatar">
-                <div class="avatar-head"></div>
-                <div class="avatar-face">
-                    <div class="avatar-eye left"></div>
-                    <div class="avatar-eye right"></div>
-                    <div class="avatar-mouth"></div>
-                </div>
-                <div class="avatar-body"></div>
-                <div class="avatar-arm left"></div>
-                <div class="avatar-arm right"></div>
+        
+        <div class="child-vision-overlay"></div>
+        
+        <!-- Oma keho lapsena -->
+        <div class="child-body breathing" id="child-body">
+            <div class="child-hair"></div>
+            <div class="child-bangs"></div>
+            <div class="child-hand left"></div>
+            <div class="child-hand right"></div>
+            <div class="child-torso">
+                <div class="child-shirt"></div>
             </div>
-        </div>
-
-        <!-- Kehon avatar (näet kehosi sijasta) -->
-        <div class="body-anchored-avatar body-avatar gentle-float" id="body-avatar">
-            <div class="avatar">
-                <div class="avatar-head"></div>
-                <div class="avatar-face">
-                    <div class="avatar-eye left"></div>
-                    <div class="avatar-eye right"></div>
-                    <div class="avatar-mouth"></div>
-                </div>
-                <div class="avatar-body"></div>
-                <div class="avatar-arm left"></div>
-                <div class="avatar-arm right"></div>
-                <div class="avatar-leg left"></div>
-                <div class="avatar-leg right"></div>
+            <div class="child-leg left">
+                <div class="child-shoe"></div>
+            </div>
+            <div class="child-leg right">
+                <div class="child-shoe"></div>
             </div>
         </div>
     </div>
 
     <!-- UI container -->
     <div id="ui-container">
-        <h1>👶 Lapsi Avatar AR</h1>
+        <h1>👶 Lapsen Näkökulma</h1>
         <div class="subtitle">
-            Koe olevasi lapsi uudestaan!<br>
-            Avatar tulee olemaan kehossasi - näet lapsen kädet ja kehon omiesi sijasta.
+            Kokee maailman lapsen silmin!<br>
+            Näet oman lapsen kehosi ja maailman suurempana - aivan kuin olisit todella pieni.
         </div>
         
-        <button id="ar-button">Käynnistä Keho-Avatar</button>
+        <button id="experience-button">Kokeile Lapsen Näkökulmaa</button>
         
-        <div id="status">Tarkistetaan AR-tukea...</div>
+        <div id="status">Valmistellaan lapsen näkökulmaa...</div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan keho-avatar...</p>
+            <p>Siirrytään lapsen näkökulmaan...</p>
         </div>
 
         <div class="info-panel">
             <h3>Miten toimii:</h3>
-            <p>1. Paina "Käynnistä Keho-Avatar"</p>
-            <p>2. Salli kameran käyttö</p>
-            <p>3. Katso alas ja ympärillesi - näet avatarin kehossasi!</p>
-            <p><strong>Huomio:</strong> Avatar on nyt kiinni kehossasi, ei keskellä huoneeta.</p>
+            <p>1. Paina "Kokeile Lapsen Näkökulmaa"</p>
+            <p>2. Sinut siirretään avatarin kehoon - näet maailman lapsen näkökulmasta</p>
+            <p>3. Huomaat miten kaikki on suurta ja näet oman lapsen kehosi</p>
+            <p><strong>Kokemus:</strong> Olet nyt lapsi - huonekalut ovat valtavia ja näet omat pienen kätesi ja jalkasi!</p>
         </div>
     </div>
 
-    <button id="exit-ar">Lopeta AR</button>
+    <button id="exit-experience">Palaa Normaaliin</button>
     <div class="debug-info" id="debug-info"></div>
 
     <script>
         // Pääkomponentit
         let xrSession = null;
+        let isInChildPerspective = false;
 
         // DOM-elementit
-        const arView = document.getElementById('ar-view');
+        const firstPersonView = document.getElementById('first-person-view');
         const uiContainer = document.getElementById('ui-container');
-        const arButton = document.getElementById('ar-button');
-        const exitArButton = document.getElementById('exit-ar');
+        const experienceButton = document.getElementById('experience-button');
+        const exitExperienceButton = document.getElementById('exit-experience');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
+        const childBody = document.getElementById('child-body');
         const debugInfo = document.getElementById('debug-info');
-        
-        // Avatarit kehoon
-        const headAvatar = document.getElementById('head-avatar');
-        const handAvatar = document.getElementById('hand-avatar');
-        const bodyAvatar = document.getElementById('body-avatar');
 
         // Päivitä status
         function updateStatus(message, isError = false) {
@@ -450,229 +447,236 @@
             debugInfo.textContent = info;
         }
 
-        // Tarkista AR-tuki
-        async function checkARSupport() {
-            updateDebugInfo('Tarkistetaan WebXR-tukea...');
-            
-            if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla. Varmista, että käytät Vision Pro -laseja ja Safaria.', true);
-                arButton.disabled = true;
-                return false;
-            }
-
-            try {
-                updateDebugInfo('Tarkistetaan immersive-ar -tukea...');
-                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                
-                if (arSupported) {
-                    updateStatus('AR-tila tuettu! Avatar tulee kehoosi.');
-                    updateDebugInfo('immersive-ar tuettu');
-                    return true;
-                } else {
-                    updateStatus('AR-tila ei saatavilla laitteessasi.', true);
-                    arButton.disabled = true;
-                    updateDebugInfo('Ei AR-tukea');
-                    return false;
-                }
-            } catch (error) {
-                console.error('XR-tuen tarkistus epäonnistui:', error);
-                updateStatus('Tekninen virhe AR-tuen tarkistuksessa.', true);
-                updateDebugInfo('AR-tarkistus virhe: ' + error.message);
-                arButton.disabled = true;
-                return false;
-            }
-        }
-
-        // Käynnistä Body-AR kokemus
-        async function startBodyARExperience() {
+        // Käynnistä lapsen näkökulma -kokemus
+        async function startChildPerspective() {
             try {
                 loadingElement.style.display = 'block';
-                arButton.disabled = true;
-                updateStatus('Aloitetaan keho-avatar kokemus...');
-                updateDebugInfo('Aloitetaan Body AR');
+                experienceButton.disabled = true;
+                updateStatus('Siirrytään lapsen näkökulmaan...');
+                updateDebugInfo('Siirrytään ensimmäisen henkilön näkökulmaan');
 
-                // Yritä WebXR AR:aa ensin
-                await startBodyWebXR();
+                // Yritä XR:ää ensin
+                await startXRPerspective();
 
             } catch (error) {
-                console.error('Keho-AR kokemuksen käynnistys epäonnistui:', error);
-                loadingElement.style.display = 'none';
-                arButton.disabled = false;
-                updateStatus('Keho-AR käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Lopullinen virhe: ' + error.message);
+                console.error('Lapsen näkökulman käynnistys epäonnistui:', error);
+                // Fallback: perus ensimmäisen henkilön kokemus
+                await startBasicChildPerspective();
             }
         }
 
-        // Body-WebXR AR
-        async function startBodyWebXR() {
+        // XR-pohjainen lapsen näkökulma
+        async function startXRPerspective() {
             try {
-                updateStatus('Kytketään avatar kehoosi...');
-                updateDebugInfo('Kytketään avatar kehoon');
-                
-                const sessionOptions = {
-                    requiredFeatures: ['local'],
-                    optionalFeatures: ['dom-overlay']
-                };
-
-                const session = await navigator.xr.requestSession('immersive-ar', sessionOptions);
-                xrSession = session;
-                updateDebugInfo('WebXR session saatu');
-
-                // Päivitä näkymä AR-tilaan
-                arView.style.display = 'block';
-                headAvatar.style.display = 'block';
-                handAvatar.style.display = 'block';
-                bodyAvatar.style.display = 'block';
-                uiContainer.classList.add('hidden');
-                exitArButton.style.display = 'block';
-                loadingElement.style.display = 'none';
-
-                // Aloita kehon liikkeiden seuraaminen
-                startBodyTracking();
-
-                // Liitä tapahtumankäsittelijät
-                session.addEventListener('end', onSessionEnded);
-                
-                updateStatus('Keho-avatar aktiivinen! Katso alas nähdäksesi itsesi lapsena.');
-                updateDebugInfo('Body AR aktiivinen');
-
-            } catch (error) {
-                console.error('Body WebXR AR epäonnistui:', error);
-                updateDebugInfo('Body WebXR virhe: ' + error.message);
-                
-                // Yritä perus Body AR:aa fallbackina
-                updateStatus('WebXR ei toimi, yritetään perus keho-AR:aa...');
-                await startBasicBodyAR();
-            }
-        }
-
-        // Perus Body AR (fallback)
-        async function startBasicBodyAR() {
-            try {
-                updateStatus('Käynnistetään perus keho-AR:ia...');
-                updateDebugInfo('Käynnistetään Basic Body AR');
-                
-                // Näytä avatarit kehon sijaintiin ilman WebXR:ää
-                arView.style.display = 'block';
-                headAvatar.style.display = 'block';
-                handAvatar.style.display = 'block';
-                bodyAvatar.style.display = 'block';
-                uiContainer.classList.add('hidden');
-                exitArButton.style.display = 'block';
-                loadingElement.style.display = 'none';
-
-                // Aloita kehon liikkeiden seuraaminen
-                startBodyTracking();
-
-                updateStatus('Keho-avatar aktiivinen! Liiku ja kato ympärillesi.');
-                updateDebugInfo('Basic Body AR aktiivinen');
-
-            } catch (error) {
-                console.error('Perus Body AR epäonnistui:', error);
-                updateStatus('Keho-AR käynnistys epäonnistui: ' + error.message, true);
-                updateDebugInfo('Basic Body AR virhe: ' + error.message);
-            }
-        }
-
-        // Kehon liikkeiden seuraaminen
-        function startBodyTracking() {
-            updateDebugInfo('Aloitetaan kehon seuranta');
-            
-            // Hiiren/touch liikkeet avatarin liikuttamiseen
-            let mouseX = 0;
-            let mouseY = 0;
-            
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX / window.innerWidth;
-                mouseY = e.clientY / window.innerHeight;
-                updateAvatarPositions(mouseX, mouseY);
-            });
-
-            document.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) {
-                    mouseX = e.touches[0].clientX / window.innerWidth;
-                    mouseY = e.touches[0].clientY / window.innerHeight;
-                    updateAvatarPositions(mouseX, mouseY);
+                if (!navigator.xr) {
+                    throw new Error('WebXR ei saatavilla');
                 }
+
+                updateStatus('Käynnistetään XR-lapsenäkökulmaa...');
+                updateDebugInfo('Käynnistetään XR-perspektiiviä');
+
+                // Yritä VR:ää (pass-through) lapsen näkökulman saavuttamiseksi
+                const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                
+                if (vrSupported) {
+                    const session = await navigator.xr.requestSession('immersive-vr', {
+                        requiredFeatures: ['local-floor'],
+                        optionalFeatures: ['bounded-floor']
+                    });
+
+                    xrSession = session;
+                    await setupChildPerspective(session, 'XR');
+                } else {
+                    throw new Error('VR-tila ei saatavilla');
+                }
+
+            } catch (error) {
+                console.error('XR-perspektiivi epäonnistui:', error);
+                throw error;
+            }
+        }
+
+        // Perus lapsen näkökulma (fallback)
+        async function startBasicChildPerspective() {
+            try {
+                updateStatus('Käynnistetään perus lapsen näkökulmaa...');
+                updateDebugInfo('Käynnistetään Basic perspektiiviä');
+
+                // Aseta lapsen näkökulma ilman XR:ää
+                setupChildPerspective(null, 'Basic');
+
+            } catch (error) {
+                console.error('Perus perspektiivi epäonnistui:', error);
+                loadingElement.style.display = 'none';
+                experienceButton.disabled = false;
+                updateStatus('Kokemuksen käynnistys epäonnistui: ' + error.message, true);
+                updateDebugInfo('Perspektiivi virhe: ' + error.message);
+            }
+        }
+
+        // Aseta lapsen näkökulma
+        function setupChildPerspective(session, mode) {
+            updateDebugInfo(`Asetetaan lapsen perspektiivi: ${mode}`);
+
+            // Päivitä näkymä lapsen näkökulmaan
+            firstPersonView.style.display = 'block';
+            childBody.style.display = 'block';
+            uiContainer.classList.add('hidden');
+            exitExperienceButton.style.display = 'block';
+            loadingElement.style.display = 'none';
+
+            isInChildPerspective = true;
+
+            // Aloita lapsen näkökulman efektit
+            startChildPerspectiveEffects();
+
+            if (session) {
+                session.addEventListener('end', onExperienceEnded);
+            }
+
+            updateStatus('Olet nyt lapsi! Katso ympärillesi ja huomaa miten kaikki on suurta.');
+            updateDebugInfo(`Lapsen perspektiivi aktiivinen (${mode})`);
+        }
+
+        // Lapsen näkökulman efektit ja interaktiot
+        function startChildPerspectiveEffects() {
+            updateDebugInfo('Käynnistetään lapsen näkökulman efektit');
+
+            // Lisää hiiri/touch kontrollit "katseen" liikuttamiseen
+            let lookX = 0;
+            let lookY = 0;
+            const sensitivity = 0.5;
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isInChildPerspective) return;
+
+                lookX = (e.movementX || 0) * sensitivity;
+                lookY = (e.movementY || 0) * sensitivity;
+
+                // Liikuta hiuksia hieman katseen mukaan
+                const hair = document.querySelector('.child-hair');
+                const bangs = document.querySelector('.child-bangs');
+                
+                hair.style.transform = `perspective(500px) rotateX(${10 - lookY}deg) rotateY(${lookX}deg)`;
+                bangs.style.transform = `translateX(${lookX}px)`;
             });
 
-            // Pään vähäinen liike responsiivisuuden tunnetta varten
-            let headOffset = 0;
+            // Lisää satunnaisia lapsenomaisia liikkeitä
             setInterval(() => {
-                headOffset = Math.sin(Date.now() * 0.002) * 5;
-                headAvatar.style.transform = `scale(0.8) translateX(${headOffset}px)`;
-            }, 50);
+                if (!isInChildPerspective) return;
 
-            // Käden satunnaisia liikkeitä
+                // Satunnainen käden heilautus
+                if (Math.random() > 0.7) {
+                    const hand = document.querySelector('.child-hand.left');
+                    hand.style.animation = 'none';
+                    setTimeout(() => {
+                        hand.style.animation = 'handMoveLeft 0.5s ease-in-out';
+                    }, 10);
+                }
+
+                // Satunnainen jalkojen liike
+                if (Math.random() > 0.8) {
+                    const legs = document.querySelectorAll('.child-leg');
+                    legs.forEach(leg => {
+                        leg.style.animation = 'none';
+                        setTimeout(() => {
+                            leg.style.animation = 'legSwing 0.3s ease-in-out';
+                        }, 10);
+                    });
+                }
+
+                // Hengitysanimaatio
+                childBody.style.animation = 'breathe 3s ease-in-out infinite';
+
+            }, 2000);
+
+            // Lisää vilkkuja näkökenttään (lapsen mielikuvitus)
             setInterval(() => {
-                const handMove = Math.sin(Date.now() * 0.003) * 10;
-                handAvatar.style.transform = `scale(0.6) translateY(${handMove}px)`;
+                if (!isInChildPerspective) return;
+                createSparkle();
+            }, 3000);
+
+            // Taustan värien muutos (lapsen elävä mielikuvitus)
+            let hueRotation = 0;
+            setInterval(() => {
+                if (!isInChildPerspective) return;
+                hueRotation = (hueRotation + 0.1) % 360;
+                firstPersonView.style.filter = `hue-rotate(${hueRotation}deg) brightness(1.1)`;
             }, 100);
         }
 
-        // Päivitä avatarien sijainnit kehossa
-        function updateAvatarPositions(x, y) {
-            // Pään avatar reagoi hieman liikkeisiin
-            const headX = (x - 0.5) * 10;
-            const headY = (y - 0.5) * 5;
-            headAvatar.style.transform = `scale(0.8) translate(${headX}px, ${headY}px)`;
+        // Luo vilkku (lapsen mielikuvitus)
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.style.cssText = `
+                position: absolute;
+                width: 20px;
+                height: 20px;
+                background: radial-gradient(circle, #FFD700, transparent);
+                border-radius: 50%;
+                pointer-events: none;
+                animation: sparkleFloat 2s ease-in-out forwards;
+                top: ${Math.random() * 50 + 25}%;
+                left: ${Math.random() * 80 + 10}%;
+            `;
 
-            // Käden avatar reagoi enemmän
-            const handX = (x - 0.5) * 20;
-            const handY = (y - 0.5) * 15;
-            handAvatar.style.transform = `scale(0.6) translate(${handX}px, ${handY}px)`;
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes sparkleFloat {
+                    0% { opacity: 0; transform: scale(0) rotate(0deg); }
+                    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+                    100% { opacity: 0; transform: scale(0) rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
 
-            // Kehon avatar pysyy suhteellisen paikallaan
-            const bodyY = (y - 0.5) * 8;
-            bodyAvatar.style.transform = `translateX(-50%) scale(0.7) translateY(${bodyY}px)`;
+            firstPersonView.appendChild(sparkle);
+            setTimeout(() => sparkle.remove(), 2000);
         }
 
-        // Käsittele session päättyminen
-        function onSessionEnded() {
-            console.log('XR-sessio päättynyt');
-            updateDebugInfo('Session päättynyt');
-            resetToInitialState();
+        // Käsittele kokemuksen päättyminen
+        function onExperienceEnded() {
+            console.log('XR-kokemus päättynyt');
+            updateDebugInfo('Kokemus päättynyt');
+            resetToNormal();
         }
 
-        // Lopeta sessio
-        function endSession() {
+        // Lopeta kokemus
+        function endExperience() {
             if (xrSession) {
                 xrSession.end();
             } else {
-                resetToInitialState();
+                resetToNormal();
             }
         }
 
-        // Palauta alkutila
-        function resetToInitialState() {
-            arView.style.display = 'none';
-            headAvatar.style.display = 'none';
-            handAvatar.style.display = 'none';
-            bodyAvatar.style.display = 'none';
+        // Palauta normaali näkökulma
+        function resetToNormal() {
+            firstPersonView.style.display = 'none';
+            childBody.style.display = 'none';
             uiContainer.classList.remove('hidden');
-            exitArButton.style.display = 'none';
+            exitExperienceButton.style.display = 'none';
             loadingElement.style.display = 'none';
-            arButton.disabled = false;
+            experienceButton.disabled = false;
+            isInChildPerspective = false;
+
+            // Poista efektit
+            firstPersonView.style.filter = 'none';
             
-            updateStatus('Keho-avatar sessio päättynyt. Voit käynnistää uudestaan.');
-            updateDebugInfo('Alkutila palautettu');
+            updateStatus('Paluu normaaliin näkökulmaan. Voit kokeilla uudestaan milloin vain!');
+            updateDebugInfo('Normaali näkökulma palautettu');
         }
 
         // Alusta sovellus
         async function initializeApp() {
-            console.log('Alustetaan Keho-Avatar AR -sovellusta...');
+            console.log('Alustetaan Lapsen Näkökulma -sovellusta...');
             updateDebugInfo('Alustetaan...');
 
-            // Tarkista AR-tuki
-            const arSupport = await checkARSupport();
+            experienceButton.addEventListener('click', startChildPerspective);
+            exitExperienceButton.addEventListener('click', endExperience);
             
-            if (arSupport) {
-                arButton.addEventListener('click', startBodyARExperience);
-                exitArButton.addEventListener('click', endSession);
-                
-                updateStatus('Valmis! Paina "Käynnistä Keho-Avatar" kokeaksesi olevasi lapsi.');
-                updateDebugInfo('Valmis, odotetaan käyttäjää');
-            }
+            updateStatus('Valmis! Paina "Kokeile Lapsen Näkökulmaa" siirtyäksesi avatarin kehoon.');
+            updateDebugInfo('Valmis, odotetaan käyttäjää');
         }
 
         // Käynnistä sovellus
@@ -692,3 +696,4 @@
     </script>
 </body>
 </html>
+
