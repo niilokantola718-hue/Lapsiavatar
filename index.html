@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar AR - Kehokokemus</title>
+    <title>Lapsi Avatar - Vision Pro</title>
     <style>
         * {
             margin: 0;
@@ -51,7 +51,7 @@
             line-height: 1.5;
         }
 
-        #ar-button {
+        #start-button {
             padding: 20px 40px;
             background: linear-gradient(45deg, #4ECDC4, #44A08D);
             color: white;
@@ -65,12 +65,12 @@
             margin: 10px;
         }
 
-        #ar-button:hover {
+        #start-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 12px 30px rgba(78, 205, 196, 0.4);
         }
 
-        #ar-button:disabled {
+        #start-button:disabled {
             background: #cccccc;
             cursor: not-allowed;
             transform: none;
@@ -106,7 +106,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        #ar-view {
+        #experience-view {
             position: fixed;
             top: 0;
             left: 0;
@@ -117,7 +117,18 @@
             z-index: 500;
         }
 
-        #exit-ar {
+        #camera-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            display: none;
+        }
+
+        #exit-button {
             position: fixed;
             top: 30px;
             right: 30px;
@@ -151,7 +162,7 @@
             display: none !important;
         }
 
-        /* AVATARIN KEHO AR-YMPÄRISTÖSSÄ */
+        /* AVATARIN KEHO */
         .body-avatar {
             position: absolute;
             z-index: 600;
@@ -159,7 +170,6 @@
             pointer-events: none;
         }
 
-        /* Kädet - sijoitetaan fyysisten kätesi kohdalle */
         .hand-avatar {
             width: 80px;
             height: 80px;
@@ -176,7 +186,6 @@
             right: 10%;
         }
 
-        /* Jalat - sijoitetaan fyysisten jalkojesi kohdalle */
         .foot-avatar {
             width: 60px;
             height: 90px;
@@ -193,7 +202,6 @@
             right: 30%;
         }
 
-        /* Vartalo - sijoitetaan keskelle */
         .torso-avatar {
             width: 120px;
             height: 150px;
@@ -202,7 +210,6 @@
             transform: translateX(-50%) scale(0.9);
         }
 
-        /* Pään avatar - sijoitetaan yläosaan */
         .head-avatar {
             width: 70px;
             height: 70px;
@@ -353,18 +360,6 @@
             animation: gentleFloat 3s ease-in-out infinite;
         }
 
-        /* Ensimmäisen henkilön efektit */
-        .first-person-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 700;
-            background: radial-gradient(circle at center, transparent 40%, rgba(255, 255, 255, 0.05) 100%);
-        }
-
         .debug-info {
             position: fixed;
             bottom: 10px;
@@ -380,9 +375,12 @@
     </style>
 </head>
 <body>
-    <!-- AR-näkymä - Todellinen maailma kameran kautta + avatar -->
-    <div id="ar-view">
-        <!-- Avatarin osat sijoitettuna kehoosi -->
+    <!-- Kokemusnäkymä -->
+    <div id="experience-view">
+        <!-- Kamera video -->
+        <video id="camera-video" autoplay playsinline muted></video>
+        
+        <!-- Avatarin osat -->
         <div class="body-avatar head-avatar gentle-float" id="head-avatar">
             <div class="avatar">
                 <div class="avatar-head"></div>
@@ -451,49 +449,47 @@
                 <div class="avatar-leg right"></div>
             </div>
         </div>
-
-        <div class="first-person-overlay"></div>
     </div>
 
     <!-- UI container -->
     <div id="ui-container">
-        <h1>👶 Lapsi Avatar AR</h1>
+        <h1>👶 Lapsi Avatar</h1>
         <div class="subtitle">
             Kokeile olevasi lapsi omassa kehossasi!<br>
-            Näet todellisen maailman AR-kameran kautta ja avatarin kehosi päällä.
+            Näet todellisen maailman kameran kautta ja avatarin kehosi päällä.
         </div>
         
-        <button id="ar-button">Käynnistä Keho-AR</button>
+        <button id="start-button">Käynnistä Lapsikokemus</button>
         
-        <div id="status">Tarkistetaan AR-tukea...</div>
+        <div id="status">Valmistellaan kokemusta...</div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Alustetaan keho-avatar AR:ää...</p>
+            <p>Alustetaan...</p>
         </div>
 
         <div class="info-panel">
             <h3>Miten toimii:</h3>
-            <p>1. Paina "Käynnistä Keho-AR"</p>
+            <p>1. Paina "Käynnistä Lapsikokemus"</p>
             <p>2. Salli kameran käyttö</p>
             <p>3. Katso ympärillesi - näet todellisen maailman ja avatarin kehossasi!</p>
-            <p><strong>Kokemus:</strong> Tunnet olevasi lapsi, koska näet avatarin kädet, jalat ja vartalon omiesi päällä.</p>
+            <p><strong>Huomio:</strong> Tämä käyttää kameran kuvaa + overlay-avataria, joka toimii kaikilla laitteilla.</p>
         </div>
     </div>
 
-    <button id="exit-ar">Lopeta AR</button>
+    <button id="exit-button">Lopeta</button>
     <div class="debug-info" id="debug-info"></div>
 
     <script>
         // Pääkomponentit
-        let xrSession = null;
         let currentStream = null;
 
         // DOM-elementit
-        const arView = document.getElementById('ar-view');
+        const experienceView = document.getElementById('experience-view');
+        const cameraVideo = document.getElementById('camera-video');
         const uiContainer = document.getElementById('ui-container');
-        const arButton = document.getElementById('ar-button');
-        const exitArButton = document.getElementById('exit-ar');
+        const startButton = document.getElementById('start-button');
+        const exitButton = document.getElementById('exit-button');
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
         const debugInfo = document.getElementById('debug-info');
@@ -518,210 +514,129 @@
             debugInfo.textContent = info;
         }
 
-        // Tarkista AR-tuki
-        async function checkARSupport() {
-            updateDebugInfo('Tarkistetaan WebXR AR-tukea...');
-            
-            if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla. Varmista, että käytät Vision Pro -laseja ja Safaria.', true);
-                arButton.disabled = true;
-                return false;
-            }
-
-            try {
-                updateDebugInfo('Tarkistetaan immersive-ar -tukea...');
-                const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                
-                if (arSupported) {
-                    updateStatus('AR-tila tuettu! Avatar tulee kehoosi todellisessa maailmassa.');
-                    updateDebugInfo('immersive-ar tuettu');
-                    return true;
-                } else {
-                    updateDebugInfo('AR ei tuettu, tarkistetaan VR...');
-                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                    if (vrSupported) {
-                        updateStatus('VR-tila tuettu (käytetään AR:na pass-through:lla)');
-                        updateDebugInfo('VR tuettu - käytetään AR:na');
-                        return 'vr-for-ar';
-                    } else {
-                        updateStatus('XR-tiloja ei tuettu laitteessasi.', true);
-                        arButton.disabled = true;
-                        updateDebugInfo('Ei XR-tukea');
-                        return false;
-                    }
-                }
-            } catch (error) {
-                console.error('XR-tuen tarkistus epäonnistui:', error);
-                updateStatus('Tekninen virhe AR-tuen tarkistuksessa.', true);
-                updateDebugInfo('AR-tarkistus virhe: ' + error.message);
-                arButton.disabled = true;
-                return false;
-            }
-        }
-
         // Hanki kameran käyttöoikeus
         async function getCameraAccess() {
             try {
                 updateStatus('Pyydetään kameran käyttöoikeutta...');
                 updateDebugInfo('Pyydetään kameraa...');
                 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
+                // Yritä ensin ympäristökameraa (takakamera), sitten etukameraa
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment', // Takakamera/ympäristökamera
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    updateDebugInfo('Ympäristökamera saatu');
+                } catch (environmentError) {
+                    console.log('Ympäristökamera ei saatavilla, yritetään etukameraa:', environmentError);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'user', // Etukamera
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    updateDebugInfo('Etukamera saatu');
+                }
                 
                 currentStream = stream;
+                cameraVideo.srcObject = stream;
                 
-                // Odota että kamera on valmis
-                await new Promise((resolve) => {
-                    setTimeout(resolve, 1000);
+                // Odota että video latautuu
+                await new Promise((resolve, reject) => {
+                    cameraVideo.onloadedmetadata = () => {
+                        resolve();
+                    };
+                    cameraVideo.onerror = () => {
+                        reject(new Error('Video lataus epäonnistui'));
+                    };
+                    setTimeout(resolve, 1000); // Timeout varmuudeksi
                 });
                 
                 updateStatus('Kameran käyttöoikeus saatu!');
-                updateDebugInfo('Kamera saatu');
+                updateDebugInfo('Kamera valmis');
                 return true;
                 
             } catch (error) {
                 console.error('Kameran käyttöoikeus epäonnistui:', error);
-                updateStatus('Kameran käyttöoikeus epäonnistui. Tarkista selaimen asetukset.', true);
+                updateStatus('Kameran käyttöoikeus epäonnistui: ' + error.message, true);
                 updateDebugInfo('Kamera virhe: ' + error.message);
                 return false;
             }
         }
 
-        // Käynnistä keho-AR kokemus
-        async function startBodyARExperience() {
+        // Käynnistä lapsikokemus
+        async function startChildExperience() {
             try {
                 loadingElement.style.display = 'block';
-                arButton.disabled = true;
-                updateStatus('Aloitetaan keho-avatar AR-kokemus...');
-                updateDebugInfo('Aloitetaan Body AR');
+                startButton.disabled = true;
+                updateStatus('Aloitetaan lapsikokemus...');
+                updateDebugInfo('Aloitetaan kokemus');
 
-                // Hanki kameran käyttöoikeus
+                // 1. Hanki kameran käyttöoikeus
                 const cameraAccess = await getCameraAccess();
                 if (!cameraAccess) {
                     throw new Error('Kameran käyttöoikeutta ei saatu');
                 }
 
-                // Yritä WebXR AR:aa
-                const xrSupport = await checkARSupport();
-                
-                if (xrSupport === true) {
-                    await startWebXRAR();
-                } else if (xrSupport === 'vr-for-ar') {
-                    await startWebXRVRForAR();
-                } else {
-                    await startBasicAR();
-                }
+                // 2. Aseta kokemus
+                setupExperience();
 
             } catch (error) {
-                console.error('Keho-AR kokemuksen käynnistys epäonnistui:', error);
+                console.error('Kokemuksen käynnistys epäonnistui:', error);
                 loadingElement.style.display = 'none';
-                arButton.disabled = false;
-                updateStatus('AR-käynnistys epäonnistui: ' + error.message, true);
+                startButton.disabled = false;
+                updateStatus('Käynnistys epäonnistui: ' + error.message, true);
                 updateDebugInfo('Lopullinen virhe: ' + error.message);
             }
         }
 
-        // WebXR AR
-        async function startWebXRAR() {
-            try {
-                updateStatus('Käynnistetään AR:aa...');
-                updateDebugInfo('Käynnistetään WebXR AR:aa');
-                
-                const session = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['local'],
-                    optionalFeatures: ['dom-overlay', 'hit-test']
-                });
+        // Aseta kokemus
+        function setupExperience() {
+            updateDebugInfo('Asetetaan kokemus');
 
-                xrSession = session;
-                await setupBodyARExperience(session, 'AR');
-                
-            } catch (error) {
-                console.error('WebXR AR epäonnistui:', error);
-                throw error;
-            }
-        }
-
-        // WebXR VR käytettynä AR:na
-        async function startWebXRVRForAR() {
-            try {
-                updateStatus('Käynnistetään AR:aa VR-pass-through:lla...');
-                updateDebugInfo('Käynnistetään WebXR VR:ää AR:na');
-                
-                const session = await navigator.xr.requestSession('immersive-vr', {
-                    requiredFeatures: ['local-floor'],
-                    optionalFeatures: ['bounded-floor']
-                });
-
-                xrSession = session;
-                await setupBodyARExperience(session, 'VR-for-AR');
-                
-            } catch (error) {
-                console.error('WebXR VR AR:na epäonnistui:', error);
-                throw error;
-            }
-        }
-
-        // Perus AR (fallback)
-        async function startBasicAR() {
-            try {
-                updateStatus('Käynnistetään perus AR:aa...');
-                updateDebugInfo('Käynnistetään Basic AR');
-                
-                // Näytä avatarit ilman WebXR:ää
-                setupBodyARExperience(null, 'Basic');
-
-            } catch (error) {
-                console.error('Perus AR epäonnistui:', error);
-                throw error;
-            }
-        }
-
-        // Aseta keho-AR kokemus
-        function setupBodyARExperience(session, mode) {
-            updateDebugInfo(`Asetetaan keho-AR: ${mode}`);
-
-            // Päivitä näkymä AR-tilaan
-            arView.style.display = 'block';
+            // Päivitä näkymä kokemustilaan
+            experienceView.style.display = 'block';
+            cameraVideo.style.display = 'block';
+            
+            // Näytä kaikki avatarin osat
             headAvatar.style.display = 'block';
             handLeftAvatar.style.display = 'block';
             handRightAvatar.style.display = 'block';
             torsoAvatar.style.display = 'block';
             footLeftAvatar.style.display = 'block';
             footRightAvatar.style.display = 'block';
+            
             uiContainer.classList.add('hidden');
-            exitArButton.style.display = 'block';
+            exitButton.style.display = 'block';
             loadingElement.style.display = 'none';
 
-            // Aloita kehon liikkeiden seuraaminen
-            startBodyTracking();
+            // Aloita liikkeiden seuraaminen
+            startMovementTracking();
 
-            if (session) {
-                session.addEventListener('end', onSessionEnded);
-            }
-
-            updateStatus('Keho-avatar aktiivinen! Katso ympärillesi - näet todellisen maailman ja avatarin kehossasi.');
-            updateDebugInfo(`Keho-AR aktiivinen (${mode})`);
+            updateStatus('Lapsikokemus aktiivinen! Liiku ja katso ympärillesi.');
+            updateDebugInfo('Kokemus aktiivinen');
         }
 
-        // Kehon liikkeiden seuraaminen
-        function startBodyTracking() {
-            updateDebugInfo('Aloitetaan kehon seuranta');
+        // Liikkeiden seuraaminen
+        function startMovementTracking() {
+            updateDebugInfo('Aloitetaan liikkeiden seuranta');
             
-            // Hiiren/touch liikkeet avatarin liikuttamiseen
             let mouseX = 0;
             let mouseY = 0;
             
+            // Hiiren liikkeet
             document.addEventListener('mousemove', (e) => {
                 mouseX = e.clientX / window.innerWidth;
                 mouseY = e.clientY / window.innerHeight;
                 updateAvatarPositions(mouseX, mouseY);
             });
 
+            // Touch-liikkeet
             document.addEventListener('touchmove', (e) => {
                 if (e.touches.length > 0) {
                     mouseX = e.touches[0].clientX / window.innerWidth;
@@ -730,7 +645,7 @@
                 }
             });
 
-            // Lisää satunnaisia luonnollisia liikkeitä
+            // Lisää luonnollisia liikkeitä
             setInterval(() => {
                 const headMove = Math.sin(Date.now() * 0.002) * 2;
                 headAvatar.style.transform = `translateX(-50%) scale(0.8) translateY(${headMove}px)`;
@@ -738,7 +653,22 @@
                 const handMove = Math.cos(Date.now() * 0.003) * 3;
                 handLeftAvatar.style.transform = `scale(0.8) translateY(${handMove}px)`;
                 handRightAvatar.style.transform = `scale(0.8) translateY(${handMove}px)`;
+
+                const footMove = Math.sin(Date.now() * 0.004) * 2;
+                footLeftAvatar.style.transform = `scale(0.7) translateY(${footMove}px)`;
+                footRightAvatar.style.transform = `scale(0.7) translateY(${footMove}px)`;
             }, 50);
+
+            // Laitteen liikkeet (jos saatavilla)
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', (e) => {
+                    if (e.beta !== null && e.gamma !== null) {
+                        const tiltX = e.gamma / 90; // -1 to 1
+                        const tiltY = e.beta / 90;  // -1 to 1
+                        updateAvatarPositions(0.5 + tiltX * 0.5, 0.5 + tiltY * 0.5);
+                    }
+                });
+            }
         }
 
         // Päivitä avatar-sijainnit
@@ -763,11 +693,8 @@
             torsoAvatar.style.transform = `translateX(-50%) scale(0.9) translateY(${torsoY}px)`;
         }
 
-        // Käsittele session päättyminen
-        function onSessionEnded() {
-            console.log('XR-sessio päättynyt');
-            updateDebugInfo('Session päättynyt');
-            
+        // Lopeta kokemus
+        function endExperience() {
             // Pysäytä kamera
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
@@ -777,18 +704,10 @@
             resetToInitialState();
         }
 
-        // Lopeta sessio
-        function endSession() {
-            if (xrSession) {
-                xrSession.end();
-            } else {
-                resetToInitialState();
-            }
-        }
-
         // Palauta alkutila
         function resetToInitialState() {
-            arView.style.display = 'none';
+            experienceView.style.display = 'none';
+            cameraVideo.style.display = 'none';
             headAvatar.style.display = 'none';
             handLeftAvatar.style.display = 'none';
             handRightAvatar.style.display = 'none';
@@ -796,26 +715,23 @@
             footLeftAvatar.style.display = 'none';
             footRightAvatar.style.display = 'none';
             uiContainer.classList.remove('hidden');
-            exitArButton.style.display = 'none';
+            exitButton.style.display = 'none';
             loadingElement.style.display = 'none';
-            arButton.disabled = false;
+            startButton.disabled = false;
             
-            updateStatus('Keho-avatar sessio päättynyt. Voit käynnistää uudestaan.');
+            updateStatus('Kokemus päättynyt. Voit käynnistää uudestaan!');
             updateDebugInfo('Alkutila palautettu');
         }
 
         // Alusta sovellus
-        async function initializeApp() {
-            console.log('Alustetaan Keho-Avatar AR -sovellusta...');
+        function initializeApp() {
+            console.log('Alustetaan Lapsi Avatar -sovellusta...');
             updateDebugInfo('Alustetaan...');
 
-            // Tarkista AR-tuki
-            await checkARSupport();
+            startButton.addEventListener('click', startChildExperience);
+            exitButton.addEventListener('click', endExperience);
             
-            arButton.addEventListener('click', startBodyARExperience);
-            exitArButton.addEventListener('click', endSession);
-            
-            updateStatus('Valmis! Paina "Käynnistä Keho-AR" kokeaksesi olevasi lapsi omassa kehossasi.');
+            updateStatus('Valmis! Paina "Käynnistä Lapsikokemus" aloittaaksesi.');
             updateDebugInfo('Valmis, odotetaan käyttäjää');
         }
 
