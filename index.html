@@ -5,43 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lapsi Avatar - Vision Pro</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: #000;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        #ui {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            background: rgba(0,0,0,0.8);
-        }
-        button {
-            padding: 20px 40px;
-            font-size: 24px;
-            background: #007AFF;
-            border: none;
-            border-radius: 12px;
-            color: white;
-            cursor: pointer;
-            margin: 10px;
-        }
-        #status {
-            color: white;
-            padding: 20px;
-            text-align: center;
-            max-width: 80%;
-            font-size: 18px;
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: rgba(0,0,0,0.8); }
+        button { padding: 20px 40px; font-size: 24px; background: #007AFF; border: none; border-radius: 12px; color: white; cursor: pointer; margin: 10px; }
+        #status { color: white; padding: 20px; text-align: center; max-width: 80%; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -52,33 +19,19 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer;
-        let avatar = null;
-
+        let scene, camera, renderer, avatar;
         const status = document.getElementById('status');
         
-        function updateStatus(message) {
-            status.textContent = message;
-            console.log(message);
-        }
-
         function init() {
-            updateStatus('Alustetaan...');
-
-            if (typeof navigator.xr === 'undefined') {
-                updateStatus('WebXR ei saatavilla - käytä Vision Pro -selainta');
+            if (!navigator.xr) {
+                status.textContent = 'WebXR ei saatavilla';
                 return;
             }
 
-            // Scene
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
             
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true, 
-                alpha: true 
-            });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000, 0);
@@ -87,71 +40,28 @@
             document.body.appendChild(renderer.domElement);
 
             // Valaistus
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0.5, 1, 0.5);
-            scene.add(directionalLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const light = new THREE.DirectionalLight(0xffffff, 0.8);
+            light.position.set(0.5, 1, 0.5);
+            scene.add(light);
 
-            // Luo lapsiavatar
-            createChildAvatar();
-
-            document.getElementById('startButton').addEventListener('click', startXRSession);
-            window.addEventListener('resize', onWindowResize);
-            
-            updateStatus('Valmis - paina "Käynnistä Lapsi-Avatar"');
-        }
-
-        function createChildAvatar() {
+            // Avatar
             avatar = new THREE.Group();
-            
-            // Pää
-            const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const headMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.9
-            });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshPhongMaterial({ color: 0xFFD700, transparent: true, opacity: 0.9 }));
             head.position.y = 0.15;
             avatar.add(head);
-
-            // Vartalo
-            const bodyGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x4169E1,
-                transparent: true,
-                opacity: 0.9
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16), new THREE.MeshPhongMaterial({ color: 0x4169E1, transparent: true, opacity: 0.9 }));
             body.position.y = -0.15;
             avatar.add(body);
-
-            // Kädet
-            const armGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
-            const armMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.9
-            });
             
-            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-0.18, 0, 0);
-            leftArm.rotation.z = Math.PI / 6;
-            avatar.add(leftArm);
-            
-            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(0.18, 0, 0);
-            rightArm.rotation.z = -Math.PI / 6;
-            avatar.add(rightArm);
-
             scene.add(avatar);
+
+            document.getElementById('startButton').addEventListener('click', startXR);
+            status.textContent = 'Valmis - paina nappia';
         }
 
-        async function startXRSession() {
-            updateStatus('Käynnistetään XR-sessio...');
-
+        async function startXR() {
             try {
                 const session = await navigator.xr.requestSession('immersive-vr');
                 await renderer.xr.setSession(session);
@@ -167,18 +77,9 @@
                     renderer.render(scene, camera);
                 });
 
-                updateStatus('Olet nyt lapsen avatarissa! Liiku ympäri.');
-
+                status.textContent = 'Olet lapsen kehossa!';
             } catch (error) {
-                updateStatus('Virhe: ' + error.message);
-            }
-        }
-
-        function onWindowResize() {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                status.textContent = 'Virhe: ' + error.message;
             }
         }
 
