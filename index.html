@@ -42,53 +42,36 @@
             max-width: 80%;
             font-size: 18px;
         }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            z-index: 1001;
-            display: none;
-        }
     </style>
 </head>
 <body>
     <div id="ui">
         <button id="startButton">Käynnistä Lapsi-Avatar</button>
-        <div id="status">Näet nyt maailman lapsen silmin</div>
+        <div id="status">Vision Pro - Lapsen näkökulma</div>
     </div>
-    <div id="instructions">Olet lapsen kehossa! Liiku ympäri kokeaksesi maailman lapsen näkökulmasta</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer;
         let avatar = null;
-        let xrSession = null;
-        let avatarHead = null;
 
         const status = document.getElementById('status');
-        const instructions = document.getElementById('instructions');
         
         function updateStatus(message) {
             status.textContent = message;
+            console.log(message);
         }
 
         function init() {
             updateStatus('Alustetaan...');
 
             if (typeof navigator.xr === 'undefined') {
-                updateStatus('WebXR ei saatavilla');
+                updateStatus('WebXR ei saatavilla - käytä Vision Pro -selainta');
                 return;
             }
 
             // Scene
             scene = new THREE.Scene();
-            
-            // Kamera - tämä on SINUN näkökulmasi
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
             
             // Renderer
@@ -123,23 +106,23 @@
         function createChildAvatar() {
             avatar = new THREE.Group();
             
-            // PÄÄ - TÄRKEÄ: Teemme tästä läpinäkyvän, koska kamera on tässä
+            // Pää
             const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
             const headMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xFFD700,
                 transparent: true,
-                opacity: 0.0  // LÄPINÄKYVÄ - näet läpi!
+                opacity: 0.9
             });
-            avatarHead = new THREE.Mesh(headGeometry, headMaterial);
-            avatarHead.position.y = 0.15;
-            avatar.add(avatarHead);
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 0.15;
+            avatar.add(head);
 
-            // Vartalo - tämä näkyy edessäsi
+            // Vartalo
             const bodyGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
             const bodyMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x4169E1,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
             });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = -0.15;
@@ -150,7 +133,7 @@
             const armMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xFFD700,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
             });
             
             const leftArm = new THREE.Mesh(armGeometry, armMaterial);
@@ -163,22 +146,6 @@
             rightArm.rotation.z = -Math.PI / 6;
             avatar.add(rightArm);
 
-            // Jalat
-            const legGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
-            const legMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x000080,
-                transparent: true,
-                opacity: 0.8
-            });
-            
-            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.08, -0.3, 0);
-            avatar.add(leftLeg);
-            
-            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.08, -0.3, 0);
-            avatar.add(rightLeg);
-
             scene.add(avatar);
         }
 
@@ -187,49 +154,23 @@
 
             try {
                 const session = await navigator.xr.requestSession('immersive-vr');
-                xrSession = session;
                 await renderer.xr.setSession(session);
-                
                 document.getElementById('ui').style.display = 'none';
-                instructions.style.display = 'block';
-
-                // LAPSEN NÄKÖKULMA: Siirretään kamera avatarin päähän
-                setupChildPerspective();
 
                 renderer.setAnimationLoop(() => {
-                    // Päivitä kameran sijainti jatkuvasti
-                    updateChildPerspective();
-                    
+                    if (avatar && camera) {
+                        avatar.position.copy(camera.position);
+                        avatar.position.y -= 0.4;
+                        avatar.position.z -= 0.3;
+                        avatar.rotation.copy(camera.rotation);
+                    }
                     renderer.render(scene, camera);
                 });
 
-                updateStatus('Olet nyt lapsen kehossa!');
+                updateStatus('Olet nyt lapsen avatarissa! Liiku ympäri.');
 
             } catch (error) {
                 updateStatus('Virhe: ' + error.message);
-            }
-        }
-
-        function setupChildPerspective() {
-            // TÄRKEÄ: Asetetaan kamera avatarin "päähän" 
-            // jotta näet maailman lapsen silmin
-            if (avatar && camera) {
-                // Alusta kameran sijainti
-                camera.position.set(0, 0.8, 0); // Lapsen silmien korkeus
-            }
-        }
-
-        function updateChildPerspective() {
-            // Päivitä kameran sijainti reaaliajassa
-            if (avatar && camera) {
-                // Kamera seuraa avatarin liikettä
-                // Mutta pysyy avatarin "pään" tasolla
-                avatar.position.copy(camera.position);
-                avatar.rotation.copy(camera.rotation);
-                
-                // Lapsen näkökulma: kamera on avatarin "päässä"
-                // Avatarin keho näkyy edessäsi
-                avatar.position.y -= 0.1; // Hieman korjaus
             }
         }
 
@@ -245,5 +186,3 @@
     </script>
 </body>
 </html>
-
-
