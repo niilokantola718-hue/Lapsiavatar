@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Vision Pro WebXR</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Lapsi Avatar - Vision Pro AR</title>
     <style>
         body {
             margin: 0;
@@ -28,16 +29,19 @@
         button {
             padding: 20px 40px;
             font-size: 24px;
-            background: #007AFF;
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
             border: none;
-            border-radius: 12px;
+            border-radius: 20px;
             color: white;
             cursor: pointer;
-            margin: 10px;
+            margin: 20px;
         }
         #status {
             color: white;
+            background: rgba(0,0,0,0.7);
             padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
             text-align: center;
             max-width: 80%;
             font-size: 18px;
@@ -46,13 +50,14 @@
 </head>
 <body>
     <div id="ui">
-        <button id="startButton">Käynnistä Lapsi-Avatar</button>
-        <div id="status">Paina nappia päästäksesi lapsen kehoon Vision Pro -laseissa</div>
+        <button id="startButton">Käynnistä Oikea AR - Lapsi Avatar</button>
+        <div id="status">Yritetään saada avatar fyysiseen kehoosi</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer;
+        let xrSession = null;
         let avatar = null;
 
         const status = document.getElementById('status');
@@ -62,24 +67,30 @@
             console.log(message);
         }
 
-        function init() {
-            // Tarkista WebXR-tuki
-            if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla. Varmista että käytät Vision Pro -selainta.');
+        async function init() {
+            updateStatus('Alustetaan Vision Pro AR:lle...');
+
+            // Tarkista onko WebXR saatavilla
+            if (typeof navigator.xr === 'undefined') {
+                updateStatus('WebXR ei saatavilla - käytä Vision Pro -selainta');
                 return;
             }
 
             // Alusta Three.js
             scene = new THREE.Scene();
             
-            // Kamera - lapsen näkökulma (matalampi)
+            // Kamera - lapsen näkökulma
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            
+            camera.position.set(0, 0.8, 0); // Lapsen näkökulma
+
             // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
+            });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000000, 0); // Läpinäkyvä tausta
+            renderer.setClearColor(0x000000, 0);
             renderer.xr.enabled = true;
             
             document.body.appendChild(renderer.domElement);
@@ -98,20 +109,22 @@
             // Käynnistyspainike
             document.getElementById('startButton').addEventListener('click', startXRSession);
 
+            // Resize handler
             window.addEventListener('resize', onWindowResize);
             
-            updateStatus('Valmis! Paina "Käynnistä Lapsi-Avatar"');
+            updateStatus('Valmis - yritetään saada oikea AR-kokemus');
         }
 
         function createChildAvatar() {
+            // Luo avatar ryhmä
             avatar = new THREE.Group();
             
             // Pää
             const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
             const headMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFFD700, // Keltainen
+                color: 0xFFD700,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.8
             });
             const head = new THREE.Mesh(headGeometry, headMaterial);
             head.position.y = 0.15;
@@ -120,45 +133,46 @@
             // Vartalo
             const bodyGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
             const bodyMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x4169E1, // Sininen
+                color: 0x4169E1,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.8
             });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = -0.15;
             avatar.add(body);
 
-            // Kädet
-            const armGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
-            const armMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700 });
-            
-            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-0.18, 0, 0);
-            leftArm.rotation.z = Math.PI / 6;
-            avatar.add(leftArm);
-            
-            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(0.18, 0, 0);
-            rightArm.rotation.z = -Math.PI / 6;
-            avatar.add(rightArm);
-
+            // Aseta avatar kameran eteen (tämä korvataan XR-trackauksella)
+            avatar.position.set(0, -0.3, -0.5);
             scene.add(avatar);
         }
 
         async function startXRSession() {
-            updateStatus('Käynnistetään WebXR-sessio...');
+            updateStatus('Yritetään käynnistää AR-sessio...');
 
             try {
-                // Yritä immersive-ar ensin
+                // Vision Pro saattaa vaatia erityisiä featureja
+                const sessionInit = {
+                    optionalFeatures: [
+                        'local-floor',
+                        'bounded-floor', 
+                        'hand-tracking',
+                        'layers',
+                        'hit-test'
+                    ]
+                };
+
+                // Yritä ensin immersive-ar
                 let session;
                 try {
-                    session = await navigator.xr.requestSession('immersive-ar');
-                    updateStatus('AR-sessio käynnistetty!');
+                    updateStatus('Yritetään immersive-ar...');
+                    session = await navigator.xr.requestSession('immersive-ar', sessionInit);
                 } catch (arError) {
-                    // Jos AR ei toimi, yritä VR
-                    session = await navigator.xr.requestSession('immersive-vr');
-                    updateStatus('VR-sessio käynnistetty - voit nähdä avatarin!');
+                    updateStatus('immersive-ar ei toimi, yritetään immersive-vr...');
+                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                 }
+
+                xrSession = session;
+                updateStatus('XR-sessio saatu!');
 
                 // Aseta sessio rendererille
                 await renderer.xr.setSession(session);
@@ -166,23 +180,34 @@
                 // Piilota UI
                 document.getElementById('ui').style.display = 'none';
 
-                // Aseta lapsen näkökulma
-                setupChildPerspective();
+                // Kun XR-sessio on aktiivinen, avatarin pitäisi seurata kameraa
+                // ja näkyä osana fyysistä maailmaa
+                setupXRControls();
+
+                updateStatus('Olet nyt lapsen avatarissa! Liiku ympäri nähdäksesi maailman lapsen näkökulmasta.');
 
                 // Aloita renderöinti
                 renderer.setAnimationLoop(render);
 
             } catch (error) {
-                updateStatus('Virhe: ' + error.message);
+                updateStatus('XR-sessio epäonnistui: ' + error.message);
                 console.error('XR error:', error);
+                
+                // Näytä yksityiskohtaisempi virhe
+                if (error.message.includes('not allowed')) {
+                    updateStatus('Virhe: WebXR ei sallittu. Tarkista Vision Pro -asetukset.');
+                } else if (error.message.includes('not supported')) {
+                    updateStatus('Virhe: WebXR ei tuettu. Käytä Vision Pro -selainta.');
+                }
             }
         }
 
-        function setupChildPerspective() {
-            // Aseta kamera lapsen näkökorkeuteen (noin 80cm)
-            if (camera) {
-                // Tämä asetetaan joka kehys, jotta se pysyy lapsen näkökulmana
-            }
+        function setupXRControls() {
+            // Tässä voit lisätä XR-kontrollit avatarin liikuttamiseksi
+            // ja paikallistamiseksi fyysiseen maailmaan
+            
+            // Perus idea: avatar seuraa XR-kameran liikettä
+            // mutta pysyy kiinteänä suhteessa käyttäjään
         }
 
         function onWindowResize() {
@@ -196,11 +221,11 @@
         function render() {
             // Päivitä avatarin sijainti suhteessa kameraan
             if (avatar && camera) {
-                // Avatar seuraa kameran liikettä (sinua)
-                // mutta pysyy hieman alhaalla ja edessä lapsen perspektiivin saamiseksi
+                // Tämä pitää avatarin "kehossasi" - se seuraa kameran liikettä
+                // mutta pysyy hieman edessä/alapuolella lapsen näkökulman saamiseksi
                 avatar.position.copy(camera.position);
-                avatar.position.y -= 0.4; // Lapsen keho on matalammalla
-                avatar.position.z -= 0.3; // Hieman edessä
+                avatar.position.y -= 0.3; // Alapuolella
+                avatar.position.z -= 0.5; // Hieman edessä
                 
                 avatar.rotation.copy(camera.rotation);
             }
