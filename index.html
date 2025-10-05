@@ -59,6 +59,7 @@
         let scene, camera, renderer;
         let xrSession = null;
         let avatar = null;
+        let isChildPerspective = false;
 
         const status = document.getElementById('status');
         
@@ -79,9 +80,8 @@
             // Alusta Three.js
             scene = new THREE.Scene();
             
-            // Kamera - lapsen näkökulma
+            // Kamera
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 0.8, 0); // Lapsen näkökulma
 
             // Renderer
             renderer = new THREE.WebGLRenderer({
@@ -119,18 +119,18 @@
             // Luo avatar ryhmä
             avatar = new THREE.Group();
             
-            // Pää
+            // Pää - TÄRKEÄ: Tehdään läpinäkyväksi, koska "katomme" tämän läpi
             const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
             const headMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xFFD700,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.0  // LÄPINÄKYVÄ!
             });
             const head = new THREE.Mesh(headGeometry, headMaterial);
             head.position.y = 0.15;
             avatar.add(head);
 
-            // Vartalo
+            // Vartalo - tämä näkyy edessäsi
             const bodyGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
             const bodyMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x4169E1,
@@ -141,8 +141,24 @@
             body.position.y = -0.15;
             avatar.add(body);
 
-            // Aseta avatar kameran eteen (tämä korvataan XR-trackauksella)
-            avatar.position.set(0, -0.3, -0.5);
+            // Kädet
+            const armGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
+            const armMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xFFD700,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.18, 0, 0);
+            leftArm.rotation.z = Math.PI / 6;
+            avatar.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.18, 0, 0);
+            rightArm.rotation.z = -Math.PI / 6;
+            avatar.add(rightArm);
+
             scene.add(avatar);
         }
 
@@ -180,9 +196,8 @@
                 // Piilota UI
                 document.getElementById('ui').style.display = 'none';
 
-                // Kun XR-sessio on aktiivinen, avatarin pitäisi seurata kameraa
-                // ja näkyä osana fyysistä maailmaa
-                setupXRControls();
+                // Ota lapsen näkökulma käyttöön
+                isChildPerspective = true;
 
                 updateStatus('Olet nyt lapsen avatarissa! Liiku ympäri nähdäksesi maailman lapsen näkökulmasta.');
 
@@ -202,14 +217,6 @@
             }
         }
 
-        function setupXRControls() {
-            // Tässä voit lisätä XR-kontrollit avatarin liikuttamiseksi
-            // ja paikallistamiseksi fyysiseen maailmaan
-            
-            // Perus idea: avatar seuraa XR-kameran liikettä
-            // mutta pysyy kiinteänä suhteessa käyttäjään
-        }
-
         function onWindowResize() {
             if (camera && renderer) {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -221,21 +228,28 @@
         function render() {
             // Päivitä avatarin sijainti suhteessa kameraan
             if (avatar && camera) {
-                // Tämä pitää avatarin "kehossasi" - se seuraa kameran liikettä
-                // mutta pysyy hieman edessä/alapuolella lapsen näkökulman saamiseksi
-                avatar.position.copy(camera.position);
-                avatar.position.y -= 0.3; // Alapuolella
-                avatar.position.z -= 0.5; // Hieman edessä
-                
-                avatar.rotation.copy(camera.rotation);
-            }
-            
-            // TÄRKEÄ MUUTOS: Asetetaan kamera lapsen korkeudelle
-            // Tämä on se muutos, joka saa sinut näkemään maailman lapsen näkökulmasta
-            if (camera) {
-                // Vision Pro AR-sessiossa kamera on automaattisesti oikeassa korkeudessa
-                // Mutta voimme säätää sitä hieman saadaksemme täydellisen lapsen näkökulman
-                camera.position.y = 0.8; // Lapsen silmien korkeus (~80cm)
+                if (isChildPerspective) {
+                    // LAPSEN NÄKÖKULMA: 
+                    // 1. Siirrä kameraa alaspäin saadaksesi lapsen korkeuden
+                    // 2. Vision Pro AR näyttää automaattisesti todellisen maailman tässä korkeudessa
+                    
+                    // Luodaan illuusio matalammasta kamerasta siirtämällä koko avatar-kohtiota ylöspäin
+                    avatar.position.copy(camera.position);
+                    avatar.position.y += 0.6; // Siirretään avataria YLÖSPÄIN -> kamera näyttää "alhaalta" ylös
+                    avatar.position.z -= 0.3;
+                    avatar.rotation.copy(camera.rotation);
+                    
+                    // Voimme myös säätää kameran korkeutta suoraan
+                    // Mutta Vision Pro saattaa vastustaa tätä AR-tilassa
+                    camera.position.y = 0.8; // Lapsen silmien korkeus
+                    
+                } else {
+                    // Normaali näkökulma (ei käytössä)
+                    avatar.position.copy(camera.position);
+                    avatar.position.y -= 0.3;
+                    avatar.position.z -= 0.5;
+                    avatar.rotation.copy(camera.rotation);
+                }
             }
             
             renderer.render(scene, camera);
@@ -246,3 +260,4 @@
     </script>
 </body>
 </html>
+
