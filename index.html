@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Lapsi Avatar - AR Refleksi Kämppä</title>
+<title>Lapsi Avatar - Täysi AR Huone</title>
 <style>
 body { margin:0; padding:0; overflow:hidden; background:#000; font-family:-apple-system, BlinkMacSystemFont, sans-serif; }
 #ui { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000; background: rgba(0,0,0,0.8);}
@@ -35,6 +35,7 @@ async function init() {
 
     scene=new THREE.Scene();
 
+    // Kamera lapsen korkeudella
     camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight,0.1,100);
 
     // Kamera-wrapper lapsen korkeudelle
@@ -43,11 +44,12 @@ async function init() {
     scene.add(cameraWrapper);
     camera.position.set(0,0,0);
 
-    // World-ryhmä (virtuaalinen refleksi-kämppä)
+    // World-ryhmä (virtuaalinen refleksi-huone)
     world = new THREE.Group();
     cameraWrapper.add(world);
-    world.scale.set(0.5,0.5,0.5);
+    world.scale.set(0.5,0.5,0.5); // lapsen mittakaava
 
+    // Renderer
     renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -55,14 +57,16 @@ async function init() {
     renderer.xr.enabled=true;
     document.body.appendChild(renderer.domElement);
 
+    // Valaistus
     const ambientLight=new THREE.AmbientLight(0xffffff,1.0);
     scene.add(ambientLight);
     const directionalLight=new THREE.DirectionalLight(0xffffff,0.8);
     directionalLight.position.set(0.5,1,0.5);
     scene.add(directionalLight);
 
+    // Avatar ja virtuaalinen huone
     createChildAvatar();
-    createVirtualRefleksiRoom();
+    createFullVirtualRoom();
 
     document.getElementById('startButton').addEventListener('click',startXRSession);
     window.addEventListener('resize',onWindowResize);
@@ -88,27 +92,68 @@ function createChildAvatar(){
     world.add(avatar);
 }
 
-function createVirtualRefleksiRoom(){
-    // Esim. pöytä virtuaalisesti
-    const tableGeo=new THREE.BoxGeometry(3,0.1,1.5);
+function createFullVirtualRoom(){
+    // Lattia
+    const floorGeo=new THREE.PlaneGeometry(5,5);
+    const floorMat=new THREE.MeshPhongMaterial({color:0x999999});
+    const floor=new THREE.Mesh(floorGeo,floorMat);
+    floor.rotation.x=-Math.PI/2;
+    floor.position.y=0;
+    world.add(floor);
+
+    // Seinä taka
+    const backWallGeo=new THREE.PlaneGeometry(5,3);
+    const backWallMat=new THREE.MeshPhongMaterial({color:0xAAAAAA});
+    const backWall=new THREE.Mesh(backWallGeo,backWallMat);
+    backWall.position.z=-2.5;
+    backWall.position.y=1.5;
+    world.add(backWall);
+
+    // Seinä oikea
+    const rightWallGeo=new THREE.PlaneGeometry(5,3);
+    const rightWallMat=new THREE.MeshPhongMaterial({color:0xBBBBBB});
+    const rightWall=new THREE.Mesh(rightWallGeo,rightWallMat);
+    rightWall.rotation.y=-Math.PI/2;
+    rightWall.position.x=2.5;
+    rightWall.position.y=1.5;
+    world.add(rightWall);
+
+    // Seinä vasen
+    const leftWallGeo=new THREE.PlaneGeometry(5,3);
+    const leftWallMat=new THREE.MeshPhongMaterial({color:0xBBBBBB});
+    const leftWall=new THREE.Mesh(leftWallGeo,leftWallMat);
+    leftWall.rotation.y=Math.PI/2;
+    leftWall.position.x=-2.5;
+    leftWall.position.y=1.5;
+    world.add(leftWall);
+
+    // Katto
+    const ceilingGeo=new THREE.PlaneGeometry(5,5);
+    const ceilingMat=new THREE.MeshPhongMaterial({color:0xDDDDDD});
+    const ceiling=new THREE.Mesh(ceilingGeo,ceilingMat);
+    ceiling.rotation.x=Math.PI/2;
+    ceiling.position.y=3;
+    world.add(ceiling);
+
+    // Virtuaaliset huonekalut
+    const tableGeo=new THREE.BoxGeometry(2,0.1,1);
     const tableMat=new THREE.MeshPhongMaterial({color:0x8B4513});
     const table=new THREE.Mesh(tableGeo, tableMat);
-    table.position.set(0,-0.05,-2);
+    table.position.set(0,0.5,-1);
     world.add(table);
 
-    // Esim. tuoli
     const chairGeo=new THREE.BoxGeometry(0.5,1,0.5);
     const chairMat=new THREE.MeshPhongMaterial({color:0x654321});
     const chair=new THREE.Mesh(chairGeo, chairMat);
-    chair.position.set(1,0.5,-2.2);
+    chair.position.set(1,0.5,-1.2);
     world.add(chair);
 
-    // Lattian punaiset referenssipisteet
-    const floorGeo=new THREE.CircleGeometry(0.05,16);
-    const floorMat=new THREE.MeshBasicMaterial({color:0xff0000});
-    for(let i=-1;i<=1;i++){
-        for(let j=-1;j<=1;j++){
-            const marker=new THREE.Mesh(floorGeo,floorMat);
+    // Lattian referenssipisteet
+    const markerGeo=new THREE.CircleGeometry(0.05,16);
+    const markerMat=new THREE.MeshBasicMaterial({color:0xff0000});
+    for(let i=-2;i<=2;i++){
+        for(let j=-2;j<=2;j++){
+            const marker=new THREE.Mesh(markerGeo, markerMat);
             marker.rotation.x=-Math.PI/2;
             marker.position.set(i*0.7,0,j*0.7-1);
             world.add(marker);
@@ -137,7 +182,7 @@ async function startXRSession(){
         cameraWrapper.position.y=-0.7; // lapsen korkeus
         renderer.setAnimationLoop(render);
 
-        updateStatus('Olet lapsen avatarissa! Katso ympärille nähdäksesi refleksi-kämpän.');
+        updateStatus('Olet lapsen avatarissa! Katso ympärille nähdäksesi virtuaalisen huoneen.');
     } catch(error){
         updateStatus('XR-sessio epäonnistui: '+error.message);
         console.error('XR error:',error);
