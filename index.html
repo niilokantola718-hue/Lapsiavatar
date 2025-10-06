@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Lapsi Avatar - Täysi AR Huone</title>
+<title>Lapsi Avatar - AR Huone + Läppäri</title>
 <style>
 body { margin:0; padding:0; overflow:hidden; background:#000; font-family:-apple-system, BlinkMacSystemFont, sans-serif; }
 #ui { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000; background: rgba(0,0,0,0.8);}
@@ -101,7 +101,7 @@ function createFullVirtualRoom(){
     floor.position.y=0;
     world.add(floor);
 
-    // Seinä taka
+    // Seiniä
     const backWallGeo=new THREE.PlaneGeometry(5,3);
     const backWallMat=new THREE.MeshPhongMaterial({color:0xAAAAAA});
     const backWall=new THREE.Mesh(backWallGeo,backWallMat);
@@ -109,7 +109,6 @@ function createFullVirtualRoom(){
     backWall.position.y=1.5;
     world.add(backWall);
 
-    // Seinä oikea
     const rightWallGeo=new THREE.PlaneGeometry(5,3);
     const rightWallMat=new THREE.MeshPhongMaterial({color:0xBBBBBB});
     const rightWall=new THREE.Mesh(rightWallGeo,rightWallMat);
@@ -118,7 +117,6 @@ function createFullVirtualRoom(){
     rightWall.position.y=1.5;
     world.add(rightWall);
 
-    // Seinä vasen
     const leftWallGeo=new THREE.PlaneGeometry(5,3);
     const leftWallMat=new THREE.MeshPhongMaterial({color:0xBBBBBB});
     const leftWall=new THREE.Mesh(leftWallGeo,leftWallMat);
@@ -147,6 +145,18 @@ function createFullVirtualRoom(){
     const chair=new THREE.Mesh(chairGeo, chairMat);
     chair.position.set(1,0.5,-1.2);
     world.add(chair);
+
+    const cabinetGeo=new THREE.BoxGeometry(0.7,1.2,0.4);
+    const cabinetMat=new THREE.MeshPhongMaterial({color:0x333333});
+    const cabinet=new THREE.Mesh(cabinetGeo, cabinetMat);
+    cabinet.position.set(-1,0.6,-1.5);
+    world.add(cabinet);
+
+    const lampGeo=new THREE.CylinderGeometry(0.05,0.05,0.7,12);
+    const lampMat=new THREE.MeshPhongMaterial({color:0xFFFFAA});
+    const lamp=new THREE.Mesh(lampGeo,lampMat);
+    lamp.position.set(1.5,0.35,-0.5);
+    world.add(lamp);
 
     // Lattian referenssipisteet
     const markerGeo=new THREE.CircleGeometry(0.05,16);
@@ -182,7 +192,7 @@ async function startXRSession(){
         cameraWrapper.position.y=-0.7; // lapsen korkeus
         renderer.setAnimationLoop(render);
 
-        updateStatus('Olet lapsen avatarissa! Katso ympärille nähdäksesi virtuaalisen huoneen.');
+        updateStatus('Olet lapsen avatarissa! Katso ympärille nähdäksesi virtuaalisen huoneen ja läppärin.');
     } catch(error){
         updateStatus('XR-sessio epäonnistui: '+error.message);
         console.error('XR error:',error);
