@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -77,7 +76,7 @@
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 1.6, 0); // Aikuisen silmien korkeus oletuksena
+            camera.position.set(0, 1.6, 0); // aikuisen korkeus oletuksena
 
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -102,7 +101,7 @@
             document.getElementById('startButton').addEventListener('click', startXRSession);
             window.addEventListener('resize', onWindowResize);
             
-            updateStatus('Valmis - paina nappia aloittaaksesi lapsen näkökulman.');
+            updateStatus('Valmis – paina nappia aloittaaksesi lapsen näkökulman.');
         }
 
         function createChildAvatar() {
@@ -150,7 +149,7 @@
                 }
 
                 xrSession = session;
-                updateStatus('XR-sessio saatu! Tila: ' + session.mode.toUpperCase());
+                updateStatus('XR-sessio saatu!');
 
                 await renderer.xr.setSession(session);
                 document.getElementById('ui').style.display = 'none';
@@ -158,13 +157,13 @@
                 renderer.setAnimationLoop(render);
 
             } catch (error) {
-                updateStatus('XR-sessio epäonnistui: ' + error.message);
                 console.error('XR error:', error);
+                updateStatus('XR-sessio epäonnistui: ' + (error.message || 'Tuntematon virhe'));
             }
         }
 
         function setupXRControls() {
-            // Mahdollinen laajennus liikkeiden seuraamiselle myöhemmin
+            // Mahdollinen laajennus myöhemmin, kun kameradataa voi lukea suoraan
         }
 
         function onWindowResize() {
@@ -176,13 +175,11 @@
         }
 
         function render() {
-            // Simuloidaan lapsen korkeutta keinotekoisesti
+            // Simuloitu lapsen korkeus ilman fyysistä laskua
             if (renderer.xr.isPresenting) {
-                // Keinotekoinen kameran lasku
-                camera.position.y = 0.9; // noin 90 cm korkeudella (lapsen silmien korkeus)
+                camera.position.y = 0.9; // ~90 cm korkeudella
             }
 
-            // Avatar seuraa kameran liikettä
             if (avatar && camera) {
                 avatar.position.copy(camera.position);
                 avatar.position.y -= 0.3;
