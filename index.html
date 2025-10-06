@@ -142,7 +142,7 @@
                 let session;
                 try {
                     updateStatus('Yritetään immersive-ar...');
-                    session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                 } catch (arError) {
                     updateStatus('immersive-ar ei toimi, yritetään immersive-vr...');
                     session = await navigator.xr.requestSession('immersive-vr', sessionInit);
