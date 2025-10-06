@@ -14,27 +14,26 @@
 </head>
 <body>
     <div id="ui">
-        <button id="startButton">Käynnistä Oikea AR - Lapsi Avatar</button>
-        <div id="status">Yritetään saada avatar fyysiseen kehoosi...</div>
+        <button id="startButton">Käynnistä AR - Avatar</button>
+        <div id="status">Valmistaudutaan AR-sessioon...</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer;
         let xrSession = null;
-        let cameraWrapper;
         const status = document.getElementById('status');
 
-        function updateStatus(message) {
-            status.textContent = message;
-            console.log(message);
+        function updateStatus(msg) {
+            status.textContent = msg;
+            console.log(msg);
         }
 
-        async function init() {
-            updateStatus('Alustetaan Vision Pro AR:lle...');
+        function init() {
+            updateStatus('Alustetaan AR-näkymää...');
 
             if (!navigator.xr) {
-                updateStatus('WebXR ei saatavilla - käytä Vision Pro -selainta');
+                updateStatus('WebXR ei saatavilla. Käytä Vision Pro -selainta.');
                 return;
             }
 
@@ -42,13 +41,8 @@
             scene = new THREE.Scene();
 
             // Kamera
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-
-            // Kamera wrapper lapsen korkeuden simulaatioon
-            cameraWrapper = new THREE.Group();
-            cameraWrapper.add(camera);
-            camera.position.set(0, 0, 0);
-            scene.add(cameraWrapper);
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.6, 0); // oletuskorkeus
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -61,31 +55,31 @@
             // Valot
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
-
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(0.5, 1, 0.5);
             scene.add(directionalLight);
 
-            createChildAvatar();
+            createAvatar();
 
+            // Eventit
             document.getElementById('startButton').addEventListener('click', startXRSession);
             window.addEventListener('resize', onWindowResize);
 
-            updateStatus('Valmis – paina nappia aloittaaksesi lapsen näkökulman.');
+            updateStatus('Valmis – paina nappia aloittaaksesi AR-sessio.');
         }
 
-        function createChildAvatar() {
+        function createAvatar() {
             const avatar = new THREE.Group();
 
-            const headGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700, transparent: true, opacity: 0.8 });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
+            const headGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const headMat = new THREE.MeshPhongMaterial({ color: 0xFFD700, transparent:true, opacity:0.8 });
+            const head = new THREE.Mesh(headGeo, headMat);
             head.position.y = 0.15;
             avatar.add(head);
 
-            const bodyGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x4169E1, transparent: true, opacity: 0.8 });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            const bodyGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.3, 16);
+            const bodyMat = new THREE.MeshPhongMaterial({ color:0x4169E1, transparent:true, opacity:0.8 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.position.y = -0.15;
             avatar.add(body);
 
@@ -96,13 +90,13 @@
         async function startXRSession() {
             updateStatus('Yritetään käynnistää AR-sessio...');
 
-            try {
-                const sessionInit = {
-                    requiredFeatures: ['local-floor'], // kriittinen lapsen korkeudelle
-                    optionalFeatures: ['bounded-floor', 'hand-tracking', 'layers', 'hit-test']
-                };
+            if (!navigator.xr) return;
 
-                const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+            try {
+                const session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['local-floor'],
+                    optionalFeatures: ['bounded-floor', 'hand-tracking', 'layers', 'hit-test']
+                });
 
                 xrSession = session;
                 updateStatus('XR-sessio saatu!');
@@ -110,30 +104,24 @@
 
                 await renderer.xr.setSession(session);
 
-                // Siirrä wrapper lapsen korkeudelle AR:n alkamisen jälkeen
-                cameraWrapper.position.set(0, -0.7, 0); // ~90 cm lapsen korkeus
-
-                renderer.setAnimationLoop(render);
+                // Render-loop
+                renderer.setAnimationLoop(() => {
+                    renderer.render(scene, camera);
+                });
 
             } catch (err) {
-                console.error('XR error:', err);
+                console.error('XR-sessio epäonnistui:', err);
                 updateStatus('XR-sessio epäonnistui: ' + (err.message || 'Tuntematon virhe'));
             }
         }
 
         function onWindowResize() {
             if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.aspect = window.innerWidth/window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
         }
 
-        function render() {
-            renderer.render(scene, camera);
-        }
-
         window.addEventListener('load', init);
     </script>
-</body>
-</html>
