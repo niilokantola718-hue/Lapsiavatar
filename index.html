@@ -1,166 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lapsi Avatar - Lapsen näkökulma</title>
+    <title>Lapsi Avatar - 80cm näkökulma</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: rgba(0,0,0,0.8); }
-        button { padding: 20px 40px; font-size: 24px; background: #007AFF; border: none; border-radius: 12px; color: white; cursor: pointer; margin: 10px; }
-        #status { color: white; padding: 20px; text-align: center; max-width: 80%; font-size: 18px; }
-        #perspectiveInfo { position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: white; background: rgba(0,0,0,0.7); padding: 10px; display: none; z-index: 1001; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* LAPSEN NÄKÖKULMA 80cm */
+        body {
+            height: 100vh;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Lattia näkyy enemmän */
+            align-items: center;
+            transform: scale(0.65); /* Maailma suurempi */
+            transform-origin: center bottom; /* Transformin keskipiste alhaalla */
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Huonekalujen koko suurempi */
+        .furniture {
+            width: 200px;
+            height: 300px;
+            background: #8B4513;
+            margin: 20px;
+            border-radius: 10px;
+        }
+
+        .message {
+            color: #333;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 100px;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
+        }
+
+        /* Avatar-keho näkyvissä */
+        .avatar-body {
+            position: absolute;
+            bottom: 0;
+            width: 100px;
+            height: 180px;
+            background: rgba(0, 0, 255, 0.3); /* Läpinäkyvä sininen vartalo */
+            border-radius: 50px 50px 0 0;
+        }
+
+        .avatar-head {
+            position: absolute;
+            bottom: 180px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 0, 0.3); /* Läpinäkyvä keltainen pää */
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <button id="startButton">Käynnistä Lapsen Näkökulma</button>
-        <div id="status">Kokeile maailmaa lapsen silmin (~80cm korkeudelta)</div>
+    <div class="avatar-head"></div>
+    <div class="avatar-body"></div>
+    
+    <div class="furniture" style="height: 400px;">Iso Tuoli</div>
+    <div class="furniture" style="height: 500px;">Jättiläispöytä</div>
+    
+    <div class="message">
+        <h1>Olet lapsen kehossa! 👶</h1>
+        <p>Näet maailman 80cm korkeudelta</p>
+        <p>Kaikki on paljon suurempaa!</p>
     </div>
-    <div id="perspectiveInfo">🔥 LAPSEN NÄKÖKULMA AKTIIVINNA! 🔥<br>Olet nyt 80cm korkeudella - kokeile kävellä ympäri!</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, avatar;
-        const status = document.getElementById('status');
-        const perspectiveInfo = document.getElementById('perspectiveInfo');
-        
-        // LAPSEN KORKEUS - 80cm (0.8 metriä)
-        const CHILD_HEIGHT = 0.8;
-        
-        function init() {
-            if (!navigator.xr) {
-                status.textContent = 'WebXR ei saatavilla - käytä Vision Pro -selainta';
-                return;
-            }
+        // Lisää vuorovaikutteisuutta
+        let scale = 0.65;
+        document.addEventListener('click', function() {
+            scale = scale === 0.65 ? 0.5 : 0.65;
+            document.body.style.transform = `scale(${scale})`;
+            document.body.style.transformOrigin = 'center bottom';
+        });
 
-            scene = new THREE.Scene();
-            
-            // KAMERA - ASETETAAN LAPSEN KORKEUTEEN
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, CHILD_HEIGHT, 0);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000000, 0);
-            renderer.xr.enabled = true;
-            
-            document.body.appendChild(renderer.domElement);
-
-            // Valaistus
-            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-            const light = new THREE.DirectionalLight(0xffffff, 0.8);
-            light.position.set(0.5, 1, 0.5);
-            scene.add(light);
-
-            // Lapsiavatar - NÄKYVÄ KEHOSI
-            createChildAvatar();
-
-            document.getElementById('startButton').addEventListener('click', startXR);
-            window.addEventListener('resize', onWindowResize);
-            
-            status.textContent = 'Valmis - käynnistä lapsen näkökulma';
-        }
-
-        function createChildAvatar() {
-            avatar = new THREE.Group();
-            
-            // PÄÄ - LÄPINÄKYVÄ (olet pään sisällä)
-            const headGeometry = new THREE.SphereGeometry(0.18, 16, 16);
-            const headMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.05  // Erittäin läpinäkyvä
-            });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 0.1;
-            avatar.add(head);
-
-            // VARTALO - NÄKYVÄ OSANA KEHOA
-            const bodyGeometry = new THREE.CylinderGeometry(0.14, 0.16, 0.5, 16);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x4169E1,
-                transparent: true,
-                opacity: 0.8
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = -0.25;
-            avatar.add(body);
-
-            // KÄDET
-            const armGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 8);
-            const armMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.8
-            });
-            
-            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-0.2, -0.1, 0);
-            leftArm.rotation.z = Math.PI / 6;
-            avatar.add(leftArm);
-            
-            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(0.2, -0.1, 0);
-            rightArm.rotation.z = -Math.PI / 6;
-            avatar.add(rightArm);
-
-            scene.add(avatar);
-        }
-
-        async function startXR() {
-            try {
-                const session = await navigator.xr.requestSession('immersive-vr');
-                await renderer.xr.setSession(session);
-                
-                document.getElementById('ui').style.display = 'none';
-                perspectiveInfo.style.display = 'block';
-
-                // LAPSEN NÄKÖKULMAN SAAMINEN:
-                // Vision Pro AR näyttää automaattisesti todellisen maailman
-                // Asetamme kameran lapsen korkeuteen ja avatarin kehoosi
-                
-                let frameCount = 0;
-                renderer.setAnimationLoop(() => {
-                    frameCount++;
-                    
-                    // PÄIVITÄ AVATARIN SIJAINTI
-                    if (avatar && camera) {
-                        // Avatar seuraa kameran liikettä (sinua)
-                        avatar.position.copy(camera.position);
-                        avatar.rotation.copy(camera.rotation);
-                        
-                        // Säädä avatarin korkeutta luodaksesi illuusion lapsen näkökulmasta
-                        // Tämä yrittää kompensoida sitä, että Vision Pro käyttää oikeaa kameran korkeuttasi
-                        avatar.position.y = camera.position.y - 0.3;
-                        
-                        // Jatkuva kamera-säätö lapsen korkeuteen
-                        // Tämä on tärkein osa - yritämme pakottaa kameran lapsen korkeuteen
-                        if (frameCount % 60 === 0) { // Tehdään joka 60. frame
-                            camera.position.y = CHILD_HEIGHT;
-                        }
-                    }
-                    
-                    renderer.render(scene, camera);
-                });
-
-                status.textContent = 'Olet nyt lapsen kehossa!';
-
-            } catch (error) {
-                status.textContent = 'Virhe: ' + error.message;
-            }
-        }
-
-        function onWindowResize() {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            }
-        }
-
-        window.addEventListener('load', init);
+        // Simuloi lapsen liikkeitä
+        document.addEventListener('mousemove', function(e) {
+            const head = document.querySelector('.avatar-head');
+            const body = document.querySelector('.avatar-body');
+            const moveX = (e.clientX / window.innerWidth - 0.5) * 20;
+            head.style.transform = `translateX(${moveX}px)`;
+            body.style.transform = `translateX(${moveX}px)`;
+        });
     </script>
 </body>
 </html>
