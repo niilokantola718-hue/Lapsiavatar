@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +52,7 @@
 <body>
     <div id="ui">
         <button id="startButton">Käynnistä Oikea AR - Lapsi Avatar</button>
-        <div id="status">Yritetään saada avatar fyysiseen kehoosi</div>
+        <div id="status">Yritetään saada avatar fyysiseen kehoosi...</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -59,7 +60,6 @@
         let scene, camera, renderer;
         let xrSession = null;
         let avatar = null;
-
         const status = document.getElementById('status');
         
         function updateStatus(message) {
@@ -75,16 +75,10 @@
                 return;
             }
 
-            // Alusta Three.js
             scene = new THREE.Scene();
-            
-            // Kamera - lapsen näkökulma
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.6, 0); // Aikuisen silmien korkeus oletuksena
 
-            // Tämä laskee näkökulman lapsen korkeuteen (~0.9 m)
-            camera.position.set(0, 0.9, 0);
-
-            // Renderer
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true
@@ -93,13 +87,9 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000, 0);
             renderer.xr.enabled = true;
-
-            // Tämä kertoo Vision Prolle, että lattia on referenssi
-            renderer.xr.setReferenceSpaceType('local-floor');
             
             document.body.appendChild(renderer.domElement);
 
-            // Valaistus
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
             
@@ -107,16 +97,12 @@
             directionalLight.position.set(0.5, 1, 0.5);
             scene.add(directionalLight);
 
-            // Luo lapsiavatar
             createChildAvatar();
 
-            // Käynnistyspainike
             document.getElementById('startButton').addEventListener('click', startXRSession);
-
-            // Resize handler
             window.addEventListener('resize', onWindowResize);
             
-            updateStatus('Valmis - yritetään saada oikea AR-kokemus');
+            updateStatus('Valmis - paina nappia aloittaaksesi lapsen näkökulman.');
         }
 
         function createChildAvatar() {
@@ -151,13 +137,7 @@
 
             try {
                 const sessionInit = {
-                    optionalFeatures: [
-                        'local-floor',
-                        'bounded-floor', 
-                        'hand-tracking',
-                        'layers',
-                        'hit-test'
-                    ]
+                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'layers', 'hit-test']
                 };
 
                 let session;
@@ -170,32 +150,21 @@
                 }
 
                 xrSession = session;
-                updateStatus('XR-sessio saatu!');
+                updateStatus('XR-sessio saatu! Tila: ' + session.mode.toUpperCase());
 
                 await renderer.xr.setSession(session);
-                
                 document.getElementById('ui').style.display = 'none';
-
                 setupXRControls();
-
-                updateStatus('Olet nyt lapsen avatarissa! Liiku ympäri nähdäksesi maailman lapsen näkökulmasta.');
-
                 renderer.setAnimationLoop(render);
 
             } catch (error) {
                 updateStatus('XR-sessio epäonnistui: ' + error.message);
                 console.error('XR error:', error);
-                
-                if (error.message.includes('not allowed')) {
-                    updateStatus('Virhe: WebXR ei sallittu. Tarkista Vision Pro -asetukset.');
-                } else if (error.message.includes('not supported')) {
-                    updateStatus('Virhe: WebXR ei tuettu. Käytä Vision Pro -selainta.');
-                }
             }
         }
 
         function setupXRControls() {
-            // XR-kontrollit voidaan lisätä myöhemmin
+            // Mahdollinen laajennus liikkeiden seuraamiselle myöhemmin
         }
 
         function onWindowResize() {
@@ -207,12 +176,20 @@
         }
 
         function render() {
+            // Simuloidaan lapsen korkeutta keinotekoisesti
+            if (renderer.xr.isPresenting) {
+                // Keinotekoinen kameran lasku
+                camera.position.y = 0.9; // noin 90 cm korkeudella (lapsen silmien korkeus)
+            }
+
+            // Avatar seuraa kameran liikettä
             if (avatar && camera) {
                 avatar.position.copy(camera.position);
                 avatar.position.y -= 0.3;
                 avatar.position.z -= 0.5;
                 avatar.rotation.copy(camera.rotation);
             }
+
             renderer.render(scene, camera);
         }
 
