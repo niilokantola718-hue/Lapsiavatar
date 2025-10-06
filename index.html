@@ -59,7 +59,8 @@
         let scene, camera, renderer;
         let xrSession = null;
         let avatar = null;
-        let cameraWrapper = null; // Lisätty wrapper lapsen korkeudelle
+        let cameraWrapper = null;
+        let world = null; // Lisätty world-ryhmä 3D-objekteille
 
         const status = document.getElementById('status');
         
@@ -85,7 +86,12 @@
             cameraWrapper = new THREE.Group();
             cameraWrapper.add(camera);
             scene.add(cameraWrapper);
-            camera.position.set(0, 0, 0); // Kamera pysyy wrapperin sisällä
+            camera.position.set(0, 0, 0);
+
+            // World-ryhmä: kaikki 3D-objektit lisätään tähän
+            world = new THREE.Group();
+            cameraWrapper.add(world);
+            world.scale.set(0.5, 0.5, 0.5); // Skaalaa maailma lapsen silmin katsottuna
 
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -138,7 +144,9 @@
             avatar.add(body);
 
             avatar.position.set(0, -0.3, -0.5);
-            scene.add(avatar);
+
+            // Lisätään world-ryhmään
+            world.add(avatar);
         }
 
         async function startXRSession() {
@@ -171,7 +179,7 @@
                 
                 document.getElementById('ui').style.display = 'none';
 
-                // Lisätty: Siirrä cameraWrapper lapsen korkeudelle
+                // Kamera-wrapper lapsen korkeudelle
                 cameraWrapper.position.y = -0.7; // ~90 cm lapsen korkeus
 
                 setupXRControls();
@@ -213,3 +221,4 @@
     </script>
 </body>
 </html>
+
