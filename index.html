@@ -1,92 +1,66 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Lapsi Avatar - 80cm näkökulma</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lapsiavatar – AR-näkökulma</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.156.1/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.156.1/examples/jsm/webxr/ARButton.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        /* LAPSEN NÄKÖKULMA 80cm */
-        body {
-            height: 100vh;
-            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end; /* Lattia näkyy enemmän */
-            align-items: center;
-            transform: scale(0.65); /* Maailma suurempi */
-            transform-origin: center bottom; /* Transformin keskipiste alhaalla */
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        /* Huonekalujen koko suurempi */
-        .furniture {
-            width: 200px;
-            height: 300px;
-            background: #8B4513;
-            margin: 20px;
-            border-radius: 10px;
-        }
-
-        .message {
-            color: #333;
-            text-align: center;
-            font-size: 28px;
-            margin-bottom: 100px;
-            text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
-        }
-
-        /* Avatar-keho näkyvissä */
-        .avatar-body {
-            position: absolute;
-            bottom: 0;
-            width: 100px;
-            height: 180px;
-            background: rgba(0, 0, 255, 0.3); /* Läpinäkyvä sininen vartalo */
-            border-radius: 50px 50px 0 0;
-        }
-
-        .avatar-head {
-            position: absolute;
-            bottom: 180px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 0, 0.3); /* Läpinäkyvä keltainen pää */
-            border-radius: 50%;
-        }
+      body { margin: 0; overflow: hidden; }
+      #info {
+        position: absolute;
+        top: 10px; left: 10px;
+        color: white; background: rgba(0,0,0,0.5);
+        padding: 10px; border-radius: 8px; font-family: sans-serif;
+      }
     </style>
-</head>
-<body>
-    <div class="avatar-head"></div>
-    <div class="avatar-body"></div>
-    
-    <div class="furniture" style="height: 400px;">Iso Tuoli</div>
-    <div class="furniture" style="height: 500px;">Jättiläispöytä</div>
-    
-    <div class="message">
-        <h1>Olet lapsen kehossa! 👶</h1>
-        <p>Näet maailman 80cm korkeudelta</p>
-        <p>Kaikki on paljon suurempaa!</p>
-    </div>
+  </head>
 
+  <body>
+    <div id="info">👶 Lapsen näkökulma – Nosta maailmaasi lapsen korkeudelta</div>
     <script>
-        // Lisää vuorovaikutteisuutta
-        let scale = 0.65;
-        document.addEventListener('click', function() {
-            scale = scale === 0.65 ? 0.5 : 0.65;
-            document.body.style.transform = `scale(${scale})`;
-            document.body.style.transformOrigin = 'center bottom';
-        });
+      let camera, scene, renderer;
+      let worldRoot;
 
-        // Simuloi lapsen liikkeitä
-        document.addEventListener('mousemove', function(e) {
-            const head = document.querySelector('.avatar-head');
-            const body = document.querySelector('.avatar-body');
-            const moveX = (e.clientX / window.innerWidth - 0.5) * 20;
-            head.style.transform = `translateX(${moveX}px)`;
-            body.style.transform = `translateX(${moveX}px)`;
+      init();
+      function init() {
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(
+          70, window.innerWidth / window.innerHeight, 0.01, 20
+        );
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Luo maailma, jota nostetaan (lapsen näkökulma)
+        worldRoot = new THREE.Group();
+        worldRoot.position.y = 0.6; // maailma 60 cm korkeammalle -> näyttää kuin olisit lapsen korkeudella
+        scene.add(worldRoot);
+
+        // Lisää yksinkertainen kuutio maailmaan
+        const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const material = new THREE.MeshPhongMaterial({ color: 0x00ffcc });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(0, 0, -0.6);
+        worldRoot.add(cube);
+
+        // Lisää valo
+        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+        scene.add(light);
+
+        // Luo AR-painike
+        document.body.appendChild(ARButton.createButton(renderer, {
+          requiredFeatures: ['local-floor']
+        }));
+
+        renderer.setAnimationLoop(() => {
+          cube.rotation.y += 0.01;
+          renderer.render(scene, camera);
         });
+      }
     </script>
-</body>
+  </body>
 </html>
