@@ -1,130 +1,239 @@
-
-<html>
+<!DOCTYPE html>
+<html lang="fi">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lapsi Avatar - VR/3D Huone</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Lapsi Avatar — VR Huone</title>
 <style>
-body { margin:0; padding:0; overflow:hidden; background:#000; font-family:-apple-system, BlinkMacSystemFont, sans-serif; }
-#ui { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000; background: rgba(0,0,0,0.8);}
-button { padding:20px 40px; font-size:24px; background:linear-gradient(45deg,#FF6B6B,#4ECDC4); border:none; border-radius:20px; color:white; cursor:pointer; margin:20px; }
-#status { color:white; background: rgba(0,0,0,0.7); padding:20px; border-radius:15px; margin-top:20px; text-align:center; max-width:80%; font-size:18px; }
+  html,body { height:100%; margin:0; }
+  body {
+    background:#000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    overflow:hidden;
+  }
+  #ui {
+    position: absolute;
+    inset: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 1000;
+    background: rgba(0,0,0,0.7);
+    flex-direction: column;
+    gap: 16px;
+  }
+  button {
+    padding: 14px 26px;
+    font-size:18px;
+    border-radius:12px;
+    border: none;
+    cursor:pointer;
+    background: linear-gradient(135deg,#4ECDC4,#FF6B6B);
+    color: white;
+  }
+  #status {
+    color: #fff;
+    max-width:80%;
+    text-align:center;
+    font-size:16px;
+  }
+  canvas { width:100%; height:100%; display:block; }
 </style>
 </head>
 <body>
-<div id="ui">
-    <button id="startButton">Käynnistä VR/3D - Lapsi Avatar</button>
-    <div id="status">Valmistellaan huonetta...</div>
-</div>
+  <div id="ui">
+    <button id="startButton">Käynnistä VR — Lapsi Avatar</button>
+    <div id="status">Paina "Käynnistä VR" aloittaaksesi täysin virtuaalisen lapsen huoneen.</div>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-let scene, camera, renderer;
-let avatar=null, world=null;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  // VR-only: fully virtual room, child perspective
+  let scene, camera, renderer;
+  let world, avatar;
+  const ui = document.getElementById('ui');
+  const status = document.getElementById('status');
+  const startBtn = document.getElementById('startButton');
 
-const status=document.getElementById('status');
-function updateStatus(msg){ status.textContent=msg; console.log(msg); }
+  function logStatus(s){ status.textContent = s; console.log(s); }
 
-function init(){
-    updateStatus('Alustetaan huonetta...');
-
+  function initScene() {
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight,0.1,100);
-    camera.position.set(0,0.9,0); // lapsen silmien korkeus
+    // Camera: set initial height to child's eye height (0.9 m).
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.05, 100);
+    camera.position.set(0, 0.9, 0); // child's eye height
 
-    renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Renderer with XR enabled
+    renderer = new THREE.WebGLRenderer({ antialias:true });
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff,1.0);
-    scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff,0.8);
-    dirLight.position.set(0.5,1,0.5);
-    scene.add(dirLight);
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambient);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+    dir.position.set(0.5,1,0.5);
+    scene.add(dir);
 
-    // Maailma ja avatar
+    // World group; everything in this group is the virtual room
     world = new THREE.Group();
     scene.add(world);
-    createChildAvatar();
-    createFullVirtualRoom();
 
-    document.getElementById('startButton').addEventListener('click',startVR);
-    window.addEventListener('resize',()=>{ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    // Create avatar and room
+    createAvatar();
+    createFullRoom();
 
-    // Renderöinti heti fallback-moodissa
-    renderer.setAnimationLoop(render);
-    updateStatus('Huone valmis - voit liikkua hiirellä/hiirtä raahaamalla.');
-}
+    // Resize handling
+    window.addEventListener('resize', onWindowResize);
+  }
 
-function createChildAvatar(){
+  function createAvatar(){
     avatar = new THREE.Group();
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16), new THREE.MeshPhongMaterial({color:0xFFD700, transparent:true, opacity:0.8}));
-    head.position.y=0.15;
+    // head
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 24, 24),
+      new THREE.MeshPhongMaterial({ color: 0xFFD700, transparent:true, opacity:0.95 })
+    );
+    head.position.y = 0.15;
     avatar.add(head);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.15,0.3,16), new THREE.MeshPhongMaterial({color:0x4169E1, transparent:true, opacity:0.8}));
-    body.position.y=-0.15;
+    // body
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12,0.15,0.3,24),
+      new THREE.MeshPhongMaterial({ color: 0x4169E1, transparent:true, opacity:0.95 })
+    );
+    body.position.y = -0.15;
     avatar.add(body);
-    avatar.position.set(0,-0.3,-0.5);
+
+    avatar.position.set(0, -0.3, -0.5);
     world.add(avatar);
-}
+  }
 
-function createFullVirtualRoom(){
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(5,5), new THREE.MeshPhongMaterial({color:0x999999}));
-    floor.rotation.x=-Math.PI/2; floor.position.y=0; world.add(floor);
+  function createFullRoom(){
+    // floor
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(6,6),
+      new THREE.MeshPhongMaterial({ color: 0xe6e6e6 })
+    );
+    floor.rotation.x = -Math.PI/2;
+    floor.position.y = 0;
+    world.add(floor);
 
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(5,3), new THREE.MeshPhongMaterial({color:0xAAAAAA}));
-    backWall.position.set(0,1.5,-2.5); world.add(backWall);
+    // walls (back, left, right, front optional)
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(6,3), wallMat);
+    backWall.position.set(0, 1.5, -3);
+    world.add(backWall);
 
-    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(5,3), new THREE.MeshPhongMaterial({color:0xBBBBBB}));
-    rightWall.rotation.y=-Math.PI/2; rightWall.position.set(2.5,1.5,0); world.add(rightWall);
+    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(6,3), wallMat);
+    leftWall.rotation.y = Math.PI/2;
+    leftWall.position.set(-3, 1.5, 0);
+    world.add(leftWall);
 
-    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(5,3), new THREE.MeshPhongMaterial({color:0xBBBBBB}));
-    leftWall.rotation.y=Math.PI/2; leftWall.position.set(-2.5,1.5,0); world.add(leftWall);
+    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(6,3), wallMat);
+    rightWall.rotation.y = -Math.PI/2;
+    rightWall.position.set(3, 1.5, 0);
+    world.add(rightWall);
 
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(5,5), new THREE.MeshPhongMaterial({color:0xDDDDDD}));
-    ceiling.rotation.x=Math.PI/2; ceiling.position.y=3; world.add(ceiling);
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(6,6), new THREE.MeshPhongMaterial({ color:0xf0f0f0 }));
+    ceiling.rotation.x = Math.PI/2;
+    ceiling.position.y = 3;
+    world.add(ceiling);
 
-    const table = new THREE.Mesh(new THREE.BoxGeometry(2,0.1,1), new THREE.MeshPhongMaterial({color:0x8B4513})); table.position.set(0,0.5,-1); world.add(table);
-    const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5,1,0.5), new THREE.MeshPhongMaterial({color:0x654321})); chair.position.set(1,0.5,-1.2); world.add(chair);
-    const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.2,0.4), new THREE.MeshPhongMaterial({color:0x333333})); cabinet.position.set(-1,0.6,-1.5); world.add(cabinet);
-    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.7,12), new THREE.MeshPhongMaterial({color:0xFFFFAA})); lamp.position.set(1.5,0.35,-0.5); world.add(lamp);
+    // Table (bigger, child-scaled feel)
+    const table = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 1.2), new THREE.MeshPhongMaterial({ color: 0x8B4513 }));
+    table.position.set(0, 0.45, -1.2);
+    world.add(table);
 
-    const markerGeo = new THREE.CircleGeometry(0.05,16);
-    const markerMat = new THREE.MeshBasicMaterial({color:0xff0000});
-    for(let i=-2;i<=2;i++){ for(let j=-2;j<=2;j++){ 
-        const marker = new THREE.Mesh(markerGeo, markerMat);
-        marker.rotation.x=-Math.PI/2;
-        marker.position.set(i*0.7,0,j*0.7-1);
-        world.add(marker);
-    }}
-}
+    // Chair
+    const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.0, 0.5), new THREE.MeshPhongMaterial({ color: 0x654321 }));
+    chair.position.set(0.9, 0.5, -1.3);
+    world.add(chair);
 
-async function startVR(){
-    updateStatus('Yritetään käynnistää VR...');
-    if(!navigator.xr){ updateStatus('WebXR ei tuettu tässä selaimessa'); return; }
-    try{
-        const session = await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','hand-tracking']});
-        await renderer.xr.setSession(session);
-        document.getElementById('ui').style.display='none';
-        updateStatus('Olet nyt lapsen avatarissa VR-huoneessa!');
-    } catch(e){
-        updateStatus('VR ei onnistunut, jatketaan tavallisessa 3D-tilassa'); 
-        console.error(e);
+    // Cabinet
+    const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.45), new THREE.MeshPhongMaterial({ color: 0x333333 }));
+    cabinet.position.set(-1.2, 0.75, -1.6);
+    world.add(cabinet);
+
+    // Lamp (floor lamp)
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.9,12), new THREE.MeshPhongMaterial({ color: 0xFFFFAA }));
+    lamp.position.set(1.5, 0.45, -0.6);
+    world.add(lamp);
+
+    // Small decorative shelf
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.08,0.25), new THREE.MeshPhongMaterial({ color: 0x555555 }));
+    shelf.position.set(1.5, 1.2, -2.4);
+    world.add(shelf);
+
+    // Floor reference markers (help sense scale while moving)
+    const markerGeo = new THREE.CircleGeometry(0.06, 16);
+    const markerMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+    for(let x=-2;x<=2;x++){
+      for(let z=-2;z<=2;z++){
+        const m = new THREE.Mesh(markerGeo, markerMat);
+        m.rotation.x = -Math.PI/2;
+        m.position.set(x*0.8, 0.01, z*0.8 - 1.2);
+        world.add(m);
+      }
     }
-}
+  }
 
-function render(){
-    if(avatar && camera){
-        avatar.position.copy(camera.position); avatar.position.y-=0.3; avatar.position.z-=0.5;
-        avatar.rotation.copy(camera.rotation);
+  function onWindowResize(){
+    if (!camera || !renderer) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  // Start immersive VR session
+  async function startVR(){
+    if (!navigator.xr) {
+      logStatus('WebXR ei tuettu tässä selaimessa.');
+      return;
     }
-    renderer.render(scene,camera);
-}
 
-window.addEventListener('load',init);
-</script>
+    try {
+      logStatus('Pyydetään immersive-vr -sessio...');
+      // Request immersive-vr explicitly (VR-only)
+      const session = await navigator.xr.requestSession('immersive-vr', {
+        optionalFeatures: ['local-floor', 'hand-tracking', 'layers']
+      });
+
+      await renderer.xr.setSession(session);
+      ui.style.display = 'none';
+      logStatus('VR-sessio käynnissä — olet lapsen avatarissa.');
+
+      // Listen for sessionend to restore UI
+      session.addEventListener('end', () => {
+        ui.style.display = 'flex';
+        logStatus('VR-sessio lopetettu.');
+      });
+
+      renderer.setAnimationLoop(render);
+    } catch (err) {
+      console.error('VR session error:', err);
+      logStatus('VR-sessio epäonnistui: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  function render(){
+    // Keep avatar slightly offset from camera so you "see your body"
+    if (avatar && camera) {
+      avatar.position.copy(camera.position);
+      avatar.position.y -= 0.3;
+      avatar.position.z -= 0.5;
+      avatar.quaternion.copy(camera.quaternion);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // Init and wire up button
+  initScene();
+  startBtn.addEventListener('click', startVR);
+  </script>
 </body>
 </html>
