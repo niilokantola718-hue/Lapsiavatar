@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>6-vuotiaan VR-huone – epätasaisuudet</title>
+<title>6-vuotiaan VR-huone – realistinen näkökulma</title>
 <style>
 html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
 #ui {
@@ -52,7 +52,9 @@ function initScene(){
   sun.position.set(3,5,2);
   scene.add(sun);
 
+  // World-group: kaikki objektit nostetaan ylemmäs
   world = new THREE.Group();
+  world.position.y = 0.5; // nostetaan koko huone ylemmäs
   scene.add(world);
 
   createRoomAndFurniture();
@@ -95,24 +97,24 @@ function createRoomAndFurniture(){
   const floorMat = new THREE.MeshStandardMaterial({ map:floorTexture, roughness:0.7 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomDepth), floorMat);
   floor.rotation.x = -Math.PI/2;
-  floor.position.y = 0;
+  floor.position.y = 0; // world.position.y nostaa sen kokonaisuutta
   world.add(floor);
 
-  // Lisää matto
-  const mat = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.0),
+  // Matto
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.0),
     new THREE.MeshStandardMaterial({ color:0xd35400, roughness:0.9 }));
   mat.rotation.x = -Math.PI/2;
-  mat.position.set(0,0.01,-0.8); // hieman lattiasta ylempänä
+  mat.position.set(0,0.01,-0.8);
   world.add(mat);
 
   // Seinät
   const wallMat = new THREE.MeshStandardMaterial({ color:0xf6f6f2, roughness:0.9 });
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomHeight), wallMat);
-  backWall.position.set(0, roomHeight/2 , -roomDepth/2);
+  backWall.position.set(0, roomHeight/2, -roomDepth/2);
   world.add(backWall);
   const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomHeight), wallMat);
   frontWall.rotation.y = Math.PI;
-  frontWall.position.set(0, roomHeight/2 , roomDepth/2);
+  frontWall.position.set(0, roomHeight/2, roomDepth/2);
   world.add(frontWall);
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomDepth, roomHeight), wallMat);
   leftWall.rotation.y = Math.PI/2;
@@ -154,7 +156,7 @@ function createRoomAndFurniture(){
   cabinet.position.set(-2.2,1.0,1.8);
   world.add(cabinet);
 
-  // Läppäri
+  // Läppäri pöydällä
   const laptop = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.02,0.25),
     new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.1, roughness:0.7 }));
   laptop.position.set(0,0.79,-1.2);
@@ -165,7 +167,6 @@ function createRoomAndFurniture(){
     new THREE.MeshStandardMaterial({ color:0xff0000, roughness:0.8 }));
   toy1.position.set(-0.5,0.06,-0.5);
   world.add(toy1);
-
   const toy2 = new THREE.Mesh(new THREE.SphereGeometry(0.08,12,12),
     new THREE.MeshStandardMaterial({ color:0x00ff00, roughness:0.8 }));
   toy2.position.set(0.6,0.08,0.2);
@@ -197,7 +198,7 @@ async function startVRSession(){
     const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor','bounded-floor'] });
     await renderer.xr.setSession(session);
     ui.style.display = 'none';
-    setStatus('VR-sessio käynnistetty! Liiku ja näe maailman 6-vuotiaan silmin.');
+    setStatus('VR-sessio käynnistetty! Näe maailman 6-vuotiaan silmin.');
     renderer.setAnimationLoop(render);
   }catch(err){
     setStatus('VR-sessio epäonnistui: ' + err.message);
