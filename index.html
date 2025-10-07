@@ -4,11 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar - 6-vuotiaan Perspektiivi (VR)</title>
+    <title>Lapsen huone VR - 6-vuotiaan näkökulma</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
             background: #000;
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -50,14 +49,13 @@
 </head>
 <body>
     <div id="ui">
-        <button id="startButton">Käynnistä VR - Lapsi Avatar</button>
-        <div id="status">Valmistellaan lapsen perspektiiviä...</div>
+        <button id="startButton">Käynnistä VR-huone</button>
+        <div id="status">Valmistellaan lapsen huonetta...</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer;
-        let xrSession = null;
         let avatar = null;
 
         const status = document.getElementById('status');
@@ -77,72 +75,128 @@
 
             scene = new THREE.Scene();
 
-            // 👦 6-vuotiaan silmien korkeus
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            // 👦 Kamera 6-vuotiaan silmien korkeudella
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
             camera.position.set(0, 0.9, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000000, 1);
             renderer.xr.enabled = true;
-
             document.body.appendChild(renderer.domElement);
 
-            // Valaistus
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            // Lämmin valaistus
+            const ambientLight = new THREE.AmbientLight(0xffe0b3, 0.8);
             scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            pointLight.position.set(0, 3, 2);
+            scene.add(pointLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0.5, 1, 0.5);
-            scene.add(directionalLight);
-
-            // 👦 Luo isompi lapsi-avatar
+            // Luo huone
+            createRoom();
+            createFurniture();
             createChildAvatar();
 
-            // Lattia heijastuksineen
-            const floorGeometry = new THREE.PlaneGeometry(10, 10);
-            const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 100 });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = 0;
-            scene.add(floor);
-
-            // Käynnistys
             document.getElementById('startButton').addEventListener('click', startXRSession);
             window.addEventListener('resize', onWindowResize);
 
-            updateStatus('Valmis – paina nappia aloittaaksesi lapsen näkökulman.');
+            updateStatus('Valmis – paina nappia aloittaaksesi lapsen huoneessa.');
+        }
+
+        function createRoom() {
+            const room = new THREE.Group();
+
+            // Seinien väri
+            const wallMaterial = new THREE.MeshPhongMaterial({ color: 0xdedede, side: THREE.BackSide });
+            const floorMaterial = new THREE.MeshPhongMaterial({ color: 0xc4a484 }); // puinen lattia
+            const ceilingMaterial = new THREE.MeshPhongMaterial({ color: 0xf5f5f5 });
+
+            // Huoneen koko (lapsen mittakaavassa iso)
+            const width = 6;
+            const height = 3;
+            const depth = 6;
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            room.add(floor);
+
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), ceilingMaterial);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = height;
+            room.add(ceiling);
+
+            // Seinät
+            const wallGeometry = new THREE.PlaneGeometry(width, height);
+            const backWall = new THREE.Mesh(wallGeometry, wallMaterial);
+            backWall.position.z = -depth / 2;
+            backWall.position.y = height / 2;
+            room.add(backWall);
+
+            const frontWall = new THREE.Mesh(wallGeometry, wallMaterial);
+            frontWall.rotation.y = Math.PI;
+            frontWall.position.z = depth / 2;
+            frontWall.position.y = height / 2;
+            room.add(frontWall);
+
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMaterial);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.position.x = -width / 2;
+            leftWall.position.y = height / 2;
+            room.add(leftWall);
+
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMaterial);
+            rightWall.rotation.y = -Math.PI / 2;
+            rightWall.position.x = width / 2;
+            rightWall.position.y = height / 2;
+            room.add(rightWall);
+
+            scene.add(room);
+        }
+
+        function createFurniture() {
+            // Matala pöytä
+            const table = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 0.5, 0.6),
+                new THREE.MeshPhongMaterial({ color: 0x8b4513 })
+            );
+            table.position.set(0, 0.25, -1.2);
+            scene.add(table);
+
+            // Tuoli
+            const chair = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.8, 0.4),
+                new THREE.MeshPhongMaterial({ color: 0x9c661f })
+            );
+            chair.position.set(-0.8, 0.4, -1.0);
+            scene.add(chair);
+
+            // Kaappi
+            const cabinet = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 1.8, 0.4),
+                new THREE.MeshPhongMaterial({ color: 0xb5651d })
+            );
+            cabinet.position.set(1.8, 0.9, -1.5);
+            scene.add(cabinet);
         }
 
         function createChildAvatar() {
             avatar = new THREE.Group();
 
-            // Pää
-            const headGeometry = new THREE.SphereGeometry(0.18, 16, 16);
-            const headMaterial = new THREE.MeshPhongMaterial({
-                color: 0xFFD700,
-                transparent: true,
-                opacity: 0.8
-            });
-            const head = new THREE.Mesh(headGeometry, headMaterial);
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.18, 16, 16),
+                new THREE.MeshPhongMaterial({ color: 0xffcc66, transparent: true, opacity: 0.85 })
+            );
             head.position.y = 0.18;
             avatar.add(head);
 
-            // Vartalo
-            const bodyGeometry = new THREE.CylinderGeometry(0.14, 0.17, 0.35, 16);
-            const bodyMaterial = new THREE.MeshPhongMaterial({
-                color: 0x4169E1,
-                transparent: true,
-                opacity: 0.8
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.14, 0.18, 0.35, 16),
+                new THREE.MeshPhongMaterial({ color: 0x4169e1, transparent: true, opacity: 0.8 })
+            );
             body.position.y = -0.2;
             avatar.add(body);
 
-            // Skaalaa lapsen pituus noin 115 cm
             avatar.scale.set(1.4, 1.4, 1.4);
-
             avatar.position.set(0, -0.35, -0.6);
             scene.add(avatar);
         }
@@ -151,37 +205,30 @@
             updateStatus('Yritetään käynnistää VR-sessio...');
 
             try {
-                const sessionInit = {
-                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
-                };
-
-                const session = await navigator.xr.requestSession('immersive-vr', sessionInit);
-                xrSession = session;
-
+                const session = await navigator.xr.requestSession('immersive-vr', {
+                    optionalFeatures: ['local-floor', 'bounded-floor']
+                });
                 await renderer.xr.setSession(session);
-                document.getElementById('ui').style.display = 'none';
 
+                document.getElementById('ui').style.display = 'none';
                 renderer.setAnimationLoop(render);
-                updateStatus('Olet nyt 6-vuotiaan avatarissa VR-maailmassa!');
+                updateStatus('Olet nyt lapsen huoneessa VR-maailmassa!');
             } catch (error) {
-                console.error('XR error:', error);
-                updateStatus('VR-sessio epäonnistui: ' + (error.message || 'Tuntematon virhe'));
+                console.error(error);
+                updateStatus('VR-sessio epäonnistui: ' + error.message);
             }
         }
 
         function onWindowResize() {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            }
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         function render() {
-            // Avatar seuraa kameraa – näyttää kuin olisit lapsen kehossa
             if (avatar && camera) {
                 avatar.position.copy(camera.position);
-                avatar.position.y -= 0.4; // pään ja vartalon välinen etäisyys
+                avatar.position.y -= 0.4;
                 avatar.position.z -= 0.6;
                 avatar.rotation.copy(camera.rotation);
             }
