@@ -1,7 +1,7 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fi">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>6-vuotiaan VR-huone</title>
 <style>
@@ -32,9 +32,9 @@ const ui = document.getElementById('ui');
 const status = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 
-function setStatus(msg) { status.textContent = msg; console.log(msg); }
+function setStatus(msg){ status.textContent = msg; console.log(msg); }
 
-function initScene() {
+function initScene(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xcfe6ff);
 
@@ -58,7 +58,7 @@ function initScene() {
   createRoomAndFurniture();
   createAvatar();
 
-  window.addEventListener('resize', () => {
+  window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -164,9 +164,7 @@ function render(timestamp, frame){
     const camPos = new THREE.Vector3().setFromMatrixPosition(xrCam.matrixWorld);
     const camQuat = new THREE.Quaternion().setFromRotationMatrix(xrCam.matrixWorld);
 
-    // Lapsen silmien korkeus
-    camPos.y = TARGET_EYE_HEIGHT;
-
+    camPos.y = TARGET_EYE_HEIGHT; // 6-vuotiaan silmien korkeus
     camera.position.copy(camPos);
     camera.quaternion.copy(camQuat);
 
@@ -182,12 +180,19 @@ async function startVRSession(){
   if(!navigator.xr){ setStatus('WebXR ei tuettu tässä selaimessa'); return; }
   try{
     setStatus('Käynnistetään VR-sessio...');
-    const session = await navigator.xr.requestSession('immersive-vr', {
-      optionalFeatures: ['local-floor', 'bounded-floor']
-    });
+    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor','bounded-floor'] });
     await renderer.xr.setSession(session);
     ui.style.display = 'none';
     setStatus('VR-sessio käynnistetty! Liiku ja näe maailman 6-vuotiaan silmin.');
     renderer.setAnimationLoop(render);
   }catch(err){
-    setStatus('VR-sessio epäonn
+    setStatus('VR-sessio epäonnistui: ' + err.message);
+    console.error(err);
+  }
+}
+
+initScene();
+startBtn.addEventListener('click', startVRSession);
+</script>
+</body>
+</html>
