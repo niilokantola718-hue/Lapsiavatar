@@ -1,22 +1,21 @@
 <!doctype html>
 <html lang="fi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>6-vuotiaan perspektiivi — VR-huone parketilla</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6-vuotiaan VR-huone</title>
 <style>
-html,body{height:100%;margin:0}
-body{background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;overflow:hidden}
-#ui{
-  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;background:rgba(0,0,0,0.7);z-index:999;color:#fff;
+html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
+#ui {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; background:rgba(0,0,0,0.7); z-index:999; color:#fff;
 }
-button{
-  padding:14px 22px;border-radius:10px;border:none;font-size:16px;
-  background:linear-gradient(135deg,#4ECDC4,#FF6B6B);color:#fff;cursor:pointer;
+button {
+  padding:14px 22px; border-radius:10px; border:none; font-size:16px;
+  background:linear-gradient(135deg,#4ECDC4,#FF6B6B); color:#fff; cursor:pointer;
 }
-#status{max-width:80%;text-align:center}
-canvas{width:100%;height:100%;display:block}
+#status { max-width:80%; text-align:center; }
+canvas { display:block; width:100%; height:100%; }
 </style>
 </head>
 <body>
@@ -28,15 +27,14 @@ canvas{width:100%;height:100%;display:block}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const TARGET_EYE_HEIGHT = 1.1; // 6-vuotiaan silmien korkeus
-let scene, camera, renderer;
-let world, avatar;
+let scene, camera, renderer, world, avatar;
 const ui = document.getElementById('ui');
 const status = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 
-function setStatus(t){ status.textContent = t; console.log(t); }
+function setStatus(msg) { status.textContent = msg; console.log(msg); }
 
-function initScene(){
+function initScene() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xcfe6ff);
 
@@ -52,7 +50,6 @@ function initScene(){
   scene.add(ambient);
   const sun = new THREE.DirectionalLight(0xfff7e6, 0.9);
   sun.position.set(3,5,2);
-  sun.castShadow = true;
   scene.add(sun);
 
   world = new THREE.Group();
@@ -61,19 +58,23 @@ function initScene(){
   createRoomAndFurniture();
   createAvatar();
 
-  window.addEventListener('resize', onResize);
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 }
 
 function createAvatar(){
   avatar = new THREE.Group();
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 24),
-    new THREE.MeshStandardMaterial({ color: 0xffe0b0, metalness:0.0, roughness:0.6 })
+    new THREE.MeshStandardMaterial({ color: 0xffe0b0, metalness:0, roughness:0.6 })
   );
   head.position.y = 0.16;
   avatar.add(head);
 
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.18,0.45,24),
-    new THREE.MeshStandardMaterial({ color: 0x4776E6, metalness:0.0, roughness:0.6 })
+    new THREE.MeshStandardMaterial({ color: 0x4776E6, metalness:0, roughness:0.6 })
   );
   body.position.y = -0.2;
   avatar.add(body);
@@ -85,14 +86,14 @@ function createAvatar(){
 function createRoomAndFurniture(){
   const roomWidth = 6, roomDepth = 6, roomHeight = 2.6;
 
-  // Lattia - parketti värillä
+  // Lattia - parketti
   const floorMat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.7 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomDepth), floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.position.y = 0;
   world.add(floor);
 
-  // Refleksipisteet lattialla
+  // Refleksipisteet
   for(let i=0;i<20;i++){
     const dot = new THREE.Mesh(new THREE.CircleGeometry(0.03,8),
       new THREE.MeshStandardMaterial({ color:0xffffff, opacity:0.3, transparent:true }));
@@ -101,26 +102,25 @@ function createRoomAndFurniture(){
     world.add(dot);
   }
 
+  // Seinät
   const wallMat = new THREE.MeshStandardMaterial({ color:0xf6f6f2, roughness:0.9 });
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomHeight), wallMat);
   backWall.position.set(0, roomHeight/2 , -roomDepth/2);
   world.add(backWall);
-
   const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomHeight), wallMat);
   frontWall.rotation.y = Math.PI;
   frontWall.position.set(0, roomHeight/2 , roomDepth/2);
   world.add(frontWall);
-
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomDepth, roomHeight), wallMat);
   leftWall.rotation.y = Math.PI/2;
   leftWall.position.set(-roomWidth/2, roomHeight/2, 0);
   world.add(leftWall);
-
   const rightWall = leftWall.clone();
   rightWall.rotation.y = -Math.PI/2;
   rightWall.position.set(roomWidth/2, roomHeight/2, 0);
   world.add(rightWall);
 
+  // Katto
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomDepth),
     new THREE.MeshStandardMaterial({ color:0xf8f8f8 }));
   ceiling.rotation.x = Math.PI/2;
@@ -151,17 +151,11 @@ function createRoomAndFurniture(){
   cabinet.position.set(-2.2,1.0,1.8);
   world.add(cabinet);
 
-  // Virtuaalinen läppäri
+  // Läppäri
   const laptop = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.02,0.25),
     new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.1, roughness:0.7 }));
   laptop.position.set(0,0.79,-1.2);
   world.add(laptop);
-}
-
-function onResize(){
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function render(timestamp, frame){
@@ -170,8 +164,8 @@ function render(timestamp, frame){
     const camPos = new THREE.Vector3().setFromMatrixPosition(xrCam.matrixWorld);
     const camQuat = new THREE.Quaternion().setFromRotationMatrix(xrCam.matrixWorld);
 
-    // Offset lapsen silmien korkeudelle
-    camPos.y -= (camPos.y - TARGET_EYE_HEIGHT);
+    // Lapsen silmien korkeus
+    camPos.y = TARGET_EYE_HEIGHT;
 
     camera.position.copy(camPos);
     camera.quaternion.copy(camQuat);
@@ -181,10 +175,19 @@ function render(timestamp, frame){
     avatar.position.z = camPos.z - 0.5;
     avatar.quaternion.copy(camQuat);
   }
-  renderer.render(scene,camera);
+  renderer.render(scene, camera);
 }
 
 async function startVRSession(){
   if(!navigator.xr){ setStatus('WebXR ei tuettu tässä selaimessa'); return; }
   try{
-    setStatus('
+    setStatus('Käynnistetään VR-sessio...');
+    const session = await navigator.xr.requestSession('immersive-vr', {
+      optionalFeatures: ['local-floor', 'bounded-floor']
+    });
+    await renderer.xr.setSession(session);
+    ui.style.display = 'none';
+    setStatus('VR-sessio käynnistetty! Liiku ja näe maailman 6-vuotiaan silmin.');
+    renderer.setAnimationLoop(render);
+  }catch(err){
+    setStatus('VR-sessio epäonn
