@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>6-vuotiaan VR-huone</title>
+<title>6-vuotiaan VR-huone – epätasaisuudet</title>
 <style>
 html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
 #ui {
@@ -85,22 +85,25 @@ function createAvatar(){
 
 function createRoomAndFurniture(){
   const roomWidth = 6, roomDepth = 6, roomHeight = 2.6;
+  const loader = new THREE.TextureLoader();
 
-  // Lattia - parketti
-  const floorMat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.7 });
+  // Lattia – teksturoitu parketti
+  const floorTexture = loader.load('https://threejs.org/examples/textures/wood.jpg');
+  floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+  floorTexture.repeat.set(4,4);
+  floorTexture.anisotropy = 16;
+  const floorMat = new THREE.MeshStandardMaterial({ map:floorTexture, roughness:0.7 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomDepth), floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.position.y = 0;
   world.add(floor);
 
-  // Refleksipisteet
-  for(let i=0;i<20;i++){
-    const dot = new THREE.Mesh(new THREE.CircleGeometry(0.03,8),
-      new THREE.MeshStandardMaterial({ color:0xffffff, opacity:0.3, transparent:true }));
-    dot.position.set(Math.random()*roomWidth-roomWidth/2,0.01,Math.random()*roomDepth-roomDepth/2);
-    dot.rotation.x = -Math.PI/2;
-    world.add(dot);
-  }
+  // Lisää matto
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.0),
+    new THREE.MeshStandardMaterial({ color:0xd35400, roughness:0.9 }));
+  mat.rotation.x = -Math.PI/2;
+  mat.position.set(0,0.01,-0.8); // hieman lattiasta ylempänä
+  world.add(mat);
 
   // Seinät
   const wallMat = new THREE.MeshStandardMaterial({ color:0xf6f6f2, roughness:0.9 });
@@ -156,6 +159,17 @@ function createRoomAndFurniture(){
     new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.1, roughness:0.7 }));
   laptop.position.set(0,0.79,-1.2);
   world.add(laptop);
+
+  // Lattialeluja
+  const toy1 = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),
+    new THREE.MeshStandardMaterial({ color:0xff0000, roughness:0.8 }));
+  toy1.position.set(-0.5,0.06,-0.5);
+  world.add(toy1);
+
+  const toy2 = new THREE.Mesh(new THREE.SphereGeometry(0.08,12,12),
+    new THREE.MeshStandardMaterial({ color:0x00ff00, roughness:0.8 }));
+  toy2.position.set(0.6,0.08,0.2);
+  world.add(toy2);
 }
 
 function render(timestamp, frame){
