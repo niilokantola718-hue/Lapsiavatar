@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar - VR 4-vuotias</title>
+    <title>Lapsi Avatar - VR 4-vuotias (korjattu)</title>
     <style>
         body { margin:0; padding:0; overflow:hidden; background:#000; font-family:-apple-system, BlinkMacSystemFont, sans-serif; }
         #ui {
@@ -35,9 +35,13 @@
         let scene, camera, renderer;
         let xrSession = null;
         let avatar = null;
-
         const status = document.getElementById('status');
-        function updateStatus(msg) { status.textContent = msg; console.log(msg); }
+
+        function updateStatus(msg, isError = false) {
+            status.textContent = msg;
+            status.style.color = isError ? '#ffb3b3' : '#ffffff';
+            console.log(msg);
+        }
 
         async function init() {
             updateStatus('Alustetaan VR:lle...');
@@ -49,7 +53,7 @@
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
@@ -61,18 +65,19 @@
             dirLight.position.set(0.5, 1, 0.5);
             scene.add(dirLight);
 
-            // Lattia parketilla epätasaisuuksineen
+            // Lattia parketilla epätasaisuuksineen (kevyt)
             const floorGeometry = new THREE.PlaneGeometry(5,5,20,20);
-            const floorMaterial = new THREE.MeshPhongMaterial({ color:0xdeb887, side:THREE.DoubleSide });
-            // Luo epätasaisuuksia
-            for(let i=0;i<floorGeometry.attributes.position.count;i++){
-                const y = Math.random()*0.02; // pieni korkeusvaihtelu
-                floorGeometry.attributes.position.setY(i, y);
+            const pos = floorGeometry.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                // pienet korkeuserot (z-koordinaatti kolmessa.js - PlaneGeometryssa on Z käytössä)
+                const cz = (Math.random() - 0.5) * 0.02;
+                pos.setZ(i, pos.getZ(i) + cz);
             }
             floorGeometry.computeVertexNormals();
-            const floor = new THREE.Mesh(floorGeometry,floorMaterial);
+            const floorMaterial = new THREE.MeshPhongMaterial({ color:0xdeb887, side:THREE.DoubleSide });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI/2;
-            floor.position.y = 0; // lattian korkeus virtuaalikameran alapuolella
+            floor.position.y = 0;
             scene.add(floor);
 
             // Luo lapsiavatar
@@ -81,6 +86,7 @@
             // Käynnistyspainike
             document.getElementById('startButton').addEventListener('click', startVRSession);
             window.addEventListener('resize', onWindowResize);
+
             updateStatus('Valmis - paina "Käynnistä VR"');
         }
 
@@ -99,38 +105,72 @@
             body.position.y = -0.15;
             avatar.add(body);
 
-            avatar.position.set(0,-0.3,-0.5);
+            // Aseta avatar hieman eteen (ei parentoida kameraa)
+            avatar.position.set(0, -0.3, -0.5);
             scene.add(avatar);
         }
 
         async function startVRSession() {
             updateStatus('Yritetään käynnistää VR-sessio...');
+            if (!navigator.xr) {
+                updateStatus('WebXR ei saatavilla tässä selaimessa.', true);
+                return;
+            }
+
             try {
-                const session = await navigator.xr.requestSession('immersive-vr');
+                // Pyydetään VR-istuntoa varovaisilla optioilla
+                const sessionInit = {
+                    optionalFeatures: ['local-floor', 'bounded-floor']
+                };
+
+                const session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                 xrSession = session;
+
+                // Aseta sessio rendererille ja piilota UI vasta kun renderer on valmis
                 await renderer.xr.setSession(session);
                 document.getElementById('ui').style.display = 'none';
+
+                // Käynnistä render-loop turvallisesti
                 renderer.setAnimationLoop(render);
+
                 updateStatus('VR-sessio käynnistynyt! Näet maailman 4-vuotiaan silmin.');
-            } catch(e) {
-                updateStatus('VR-sessio epäonnistui: ' + e.message);
-                console.error(e);
+            } catch (e) {
+                console.error('XR error:', e);
+                // Näytä käyttäjälle tarkempi syy jos mahdollista
+                const msg = e && e.message ? e.message : String(e);
+                updateStatus('VR-sessio epäonnistui: ' + msg, true);
             }
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         }
 
+        const tmpVec = new THREE.Vector3();
+        const tmpQuat = new THREE.Quaternion();
+
         function render() {
-            if(avatar && camera){
-                avatar.position.copy(camera.position);
-                avatar.position.y -= 0.3;
-                avatar.position.z -= 0.5;
-                avatar.rotation.copy(camera.rotation);
+            // turvallinen päivitys avataria varten:
+            if (avatar) {
+                try {
+                    // renderer.xr.getCamera() palauttaa XR:n kameraryhmän
+                    const xrCamera = renderer.xr.getCamera ? renderer.xr.getCamera(camera) : camera;
+                    xrCamera.getWorldPosition(tmpVec);
+                    xrCamera.getWorldQuaternion(tmpQuat);
+
+                    // Aseta avatar hieman kameran alapuolelle ja eteenpäin
+                    avatar.position.set(tmpVec.x, tmpVec.y - 0.3, tmpVec.z - 0.5);
+                    avatar.quaternion.copy(tmpQuat);
+                } catch (err) {
+                    // jos jotain menee pieleen, älä anna virheen katkaista render-loopia
+                    console.warn('Avatar update error (ohitetaan):', err);
+                }
             }
+
             renderer.render(scene, camera);
         }
 
