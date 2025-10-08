@@ -1,123 +1,80 @@
-'<!doctype html>
+<!doctype html>
 <html lang="fi">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Lapsen perspektiivi VR — realistinen parkettipinta</title>
+<title>Lapsen perspektiivi VR — 4-vuotias, realistinen parketti</title>
 <style>
   html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
   body{background:#000}
   #startBtn{
-    position: absolute; top:16px; left:16px; z-index:100;
-    padding:10px 16px; border-radius:8px; font-size:16px; border:0;
-    color:#fff; background:linear-gradient(90deg,#4ECDC4,#FF6B6B); cursor:pointer;
+    position:absolute;top:16px;left:16px;z-index:100;
+    padding:10px 16px;border-radius:8px;font-size:16px;border:0;
+    color:#fff;background:linear-gradient(90deg,#4ECDC4,#FF6B6B);cursor:pointer;
   }
-  #status {
-    position: absolute; right:16px; top:16px; z-index:100; color:#fff;
-    background: rgba(0,0,0,0.5); padding:8px 12px; border-radius:8px; font-size:14px;
+  #status{
+    position:absolute;right:16px;top:16px;z-index:100;color:#fff;
+    background:rgba(0,0,0,0.5);padding:8px 12px;border-radius:8px;font-size:14px;
   }
 </style>
 </head>
 <body>
 <button id="startBtn">Käynnistä VR</button>
-<div id="status">Kameran korkeus lukittu: 1.15 m (6-vuotias)</div>
+<div id="status">Kameran korkeus lukittu: 0.95 m (4-vuotias)</div>
 
 <script type="module">
-/*
-  Tässä tiedostossa:
-  - Kamera lukittu y = 1.15 m (6-vuotiaan silmien taso)
-  - Parkettitekstuuri + normal map (mikrotason epätasaisuudet)
-  - Täysi immersive-vr (ei AR-läpivientiä)
-  - Kamera kopioi XR-laitteen x/z + rotaation mutta Y korvataan lukitulla arvolla
-*/
-
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js';
 import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/webxr/VRButton.js';
 
-const LOCKED_Y = 1.15; // 6-vuotiaan silmien korkeus (m)
+// 🔹 4-vuotiaan silmien korkeus:
+const LOCKED_Y = 0.95; 
+
 let scene, camera, renderer, clock;
 let statusEl = document.getElementById('status');
 
 initScene();
 
 function initScene(){
-  // Scene & camera
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xddeeff);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
-  camera.position.set(0, LOCKED_Y, 2.5); // start position: x=0, z=2.5, y lukittu renderissä
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, 100);
+  camera.position.set(0, LOCKED_Y, 2.5);
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
-
-  // VRButton (näyttää Enter VR -napin, mutta käyttäjä voi myös painaa "Käynnistä VR" -nappia)
   document.body.appendChild(VRButton.createButton(renderer));
 
-  // Lights
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x777777, 0.9);
+  const hemi = new THREE.HemisphereLight(0xffffff,0x777777,0.9);
   scene.add(hemi);
-
-  const dir = new THREE.DirectionalLight(0xfff7e6, 0.9);
-  dir.position.set(4, 8, 4);
+  const dir = new THREE.DirectionalLight(0xfff7e6,0.9);
+  dir.position.set(4,8,4);
   dir.castShadow = true;
   dir.shadow.mapSize.set(1024,1024);
   scene.add(dir);
 
-  // World objects
   createRoomWithParket();
-
-  // Small low table for scale
-  const tableGeo = new THREE.BoxGeometry(0.6, 0.35, 0.5);
-  const tableMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.55 });
-  const table = new THREE.Mesh(tableGeo, tableMat);
-  table.position.set(0, 0.175, -1.0);
-  table.castShadow = true;
-  table.receiveShadow = true;
-  scene.add(table);
-
-  // optional subtle props to help depth perception
   addDepthProps();
 
   window.addEventListener('resize', onWindowResize);
   clock = new THREE.Clock();
-
-  // Start preview loop (non-XR) immediately so you see content in 2D if XR not available
   renderer.setAnimationLoop(renderLoop);
 }
 
-// Luo huone ja parketti (normaali/normal map + roughness)
 function createRoomWithParket(){
   const loader = new THREE.TextureLoader();
-
-  // Parkettinormal ja tekstuuri (kolme eri kuvaa käytössä)
-  // Lähteet: käytetään julkisia esimerkkikuvia; jos CORS estää, materiaalissa näkyy väri
   const colorURL = 'https://threejs.org/examples/textures/hardwood2_diffuse.jpg';
   const normalURL = 'https://threejs.org/examples/textures/hardwood2_normal.jpg';
-  const roughURL = 'https://threejs.org/examples/textures/hardwood2_bump.jpg'; // fallback jos löytyy
+  const roughURL = 'https://threejs.org/examples/textures/hardwood2_bump.jpg';
 
-  const colorMap = loader.load(colorURL, function(tex){
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(4,4);
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  }, undefined, ()=>{ console.warn('Parketti color texture ei latautunut (CORS/verkko).'); });
+  const colorMap = loader.load(colorURL, tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,4);});
+  const normalMap = loader.load(normalURL, tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,4);});
+  const roughMap = loader.load(roughURL, tex=>{tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,4);});
 
-  const normalMap = loader.load(normalURL, function(tex){
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(4,4);
-  }, undefined, ()=>{ console.warn('Parketti normal map ei latautunut.'); });
-
-  const roughMap = loader.load(roughURL, function(tex){
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(4,4);
-  }, undefined, ()=>{ /* ok */ });
-
-  // Floor material with maps (normal adds mikrotason epätasaisuuden)
   const floorMat = new THREE.MeshStandardMaterial({
     map: colorMap,
     normalMap: normalMap,
@@ -126,115 +83,95 @@ function createRoomWithParket(){
     metalness: 0.02
   });
 
-  // Plane geometry (suurempi kuin huone jotta reunat eivät näy)
-  const floorGeo = new THREE.PlaneGeometry(12, 12, 32, 32);
-  const floor = new THREE.Mesh(floorGeo, floorMat);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12,12,32,32), floorMat);
   floor.rotation.x = -Math.PI/2;
   floor.receiveShadow = true;
-  floor.position.y = 0; // varsinainen "virtuaalilattia"
+  floor.position.y = 0;
   scene.add(floor);
 
-  // Seinät (ei AR-läpivientiä => ei todellisen maailman näkyvyyttä)
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 0.95 });
-  const wallBack = new THREE.Mesh(new THREE.PlaneGeometry(12, 3.0), wallMat);
-  wallBack.position.set(0, 1.5, -6);
+  const wallMat = new THREE.MeshStandardMaterial({color:0xf6f6f2,roughness:0.95});
+  const wallBack = new THREE.Mesh(new THREE.PlaneGeometry(12,3), wallMat);
+  wallBack.position.set(0,1.5,-6);
   scene.add(wallBack);
-
-  const wallFront = new THREE.Mesh(new THREE.PlaneGeometry(12, 3.0), wallMat);
-  wallFront.position.set(0, 1.5, 6);
+  const wallFront = wallBack.clone();
+  wallFront.position.set(0,1.5,6);
   wallFront.rotation.y = Math.PI;
   scene.add(wallFront);
-
-  const wallLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 3.0), wallMat);
-  wallLeft.position.set(-6, 1.5, 0);
-  wallLeft.rotation.y = Math.PI / 2;
+  const wallLeft = wallBack.clone();
+  wallLeft.position.set(-6,1.5,0);
+  wallLeft.rotation.y = Math.PI/2;
   scene.add(wallLeft);
-
-  const wallRight = wallLeft.clone();
-  wallRight.position.set(6, 1.5, 0);
-  wallRight.rotation.y = -Math.PI / 2;
+  const wallRight = wallBack.clone();
+  wallRight.position.set(6,1.5,0);
+  wallRight.rotation.y = -Math.PI/2;
   scene.add(wallRight);
-
-  // Katto (himmennä hieman)
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ color: 0xf8f8f8 }));
-  ceiling.rotation.x = Math.PI / 2;
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(12,12), new THREE.MeshStandardMaterial({color:0xf8f8f8}));
+  ceiling.rotation.x = Math.PI/2;
   ceiling.position.y = 3.0;
   scene.add(ceiling);
 }
 
-// Lisää pieniä esineitä, jotka auttavat hahmottamaan mittakaavaa
 function addDepthProps(){
-  const boxMat = new THREE.MeshStandardMaterial({ color:0x5b8aa8, roughness:0.7 });
-  const sofa = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 0.9), boxMat);
-  sofa.position.set(1.6, 0.4, 0.5);
-  sofa.castShadow = true;
+  const tableGeo = new THREE.BoxGeometry(0.6,0.35,0.5);
+  const tableMat = new THREE.MeshStandardMaterial({color:0x8B5A2B,roughness:0.55});
+  const table = new THREE.Mesh(tableGeo, tableMat);
+  table.position.set(0,0.175,-1);
+  table.castShadow=true;
+  table.receiveShadow=true;
+  scene.add(table);
+
+  const sofa = new THREE.Mesh(new THREE.BoxGeometry(2,0.8,0.9),
+    new THREE.MeshStandardMaterial({color:0x5b8aa8,roughness:0.7}));
+  sofa.position.set(1.6,0.4,0.5);
+  sofa.castShadow=true;
   scene.add(sofa);
 
   const toy1 = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),
-    new THREE.MeshStandardMaterial({ color:0xff4d4d }));
-  toy1.position.set(-0.5, 0.06, -0.5);
+    new THREE.MeshStandardMaterial({color:0xff4d4d}));
+  toy1.position.set(-0.5,0.06,-0.5);
   scene.add(toy1);
 
-  const toy2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12),
-    new THREE.MeshStandardMaterial({ color:0x00ff66 }));
-  toy2.position.set(0.6, 0.08, 0.2);
+  const toy2 = new THREE.Mesh(new THREE.SphereGeometry(0.08,12,12),
+    new THREE.MeshStandardMaterial({color:0x00ff66}));
+  toy2.position.set(0.6,0.08,0.2);
   scene.add(toy2);
 }
 
-// Päärender, huolehtii että kamera y on aina lukittu
 function renderLoop(time, frame){
-  // jos XR on päällä, ota xrCam ja kopioi x/z sekä rotaatio, korvaa y lukitulla arvolla
   if(renderer.xr.isPresenting){
     try{
       const xrCamera = renderer.xr.getCamera(camera);
-      // xrCamera is actually a Group with multiple subcameras — take world matrix from it
       const pos = new THREE.Vector3().setFromMatrixPosition(xrCamera.matrixWorld);
       const quat = new THREE.Quaternion().setFromRotationMatrix(xrCamera.matrixWorld);
-
       camera.position.x = pos.x;
       camera.position.z = pos.z;
-      camera.position.y = LOCKED_Y; // LUKITTU korkeus
+      camera.position.y = LOCKED_Y;
       camera.quaternion.copy(quat);
-    }catch(e){
-      // jos jotain menee pieleen, pidetään kamera paikallaan
-      console.warn('XR-camera copy error:', e);
-    }
+    }catch(e){console.warn('XR camera copy error',e);}
   }else{
-    // non-XR preview: pidä kamera paikallaan katse suuntaan ja y lukittuna
     camera.position.y = LOCKED_Y;
-    camera.lookAt(0, LOCKED_Y - 0.25, 0);
+    camera.lookAt(0, LOCKED_Y-0.25, 0);
   }
-
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 }
 
-// Käynnistä vr -nappi käsittelee istunnon pyynnön (immersive-vr)
-const startBtn = document.getElementById('startBtn');
-startBtn.addEventListener('click', async () => {
-  // jos VRButton luotu, käyttäjä voi myös painaa siitä — mutta yritetään pyytää session suoraan
-  if(!navigator.xr){
-    alert('Tämä selain ei näytä tukevan WebXR:ää. Jos käytät Vision Proa, tarkista Safari-asetusten WebXR/Experimental-ominaisuudet.');
-    return;
-  }
-
+document.getElementById('startBtn').addEventListener('click', async ()=>{
+  if(!navigator.xr){alert('WebXR ei käytettävissä.');return;}
   try{
-    // pyydetään immersive-vr (POISTAMME AR-viittaukset)
-    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor','bounded-floor'] });
+    const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor','bounded-floor']});
     await renderer.xr.setSession(session);
-    // kun istunto on päällä, status päivitetään
     statusEl.textContent = `XR-istunto käynnissä — kamera lukittu y = ${LOCKED_Y.toFixed(2)} m`;
   }catch(err){
-    console.error('XR istunnon aloitus epäonnistui:', err);
-    alert('VR-istunnon aloitus epäonnistui: ' + (err && err.message ? err.message : err));
+    console.error(err);
+    alert('VR-istunnon käynnistys epäonnistui: '+err.message);
   }
 });
 
 function onWindowResize(){
-  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth,window.innerHeight);
 }
-
 </script>
 </body>
 </html>
