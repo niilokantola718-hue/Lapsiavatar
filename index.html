@@ -41,9 +41,9 @@ async function init(){
 
     scene = new THREE.Scene();
 
-    // Kamera sijoitettu fyysisesti aikuisen korkeudelle, mutta huone skaalataan lapsen näkökulmaan
+    // Kamera fyysisen pään korkeudelle (VR hoitaa perspektiivin)
     camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1.6, 0); // fyysinen pään korkeus
+    camera.position.set(0, 1.6, 0); 
 
     renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -57,10 +57,10 @@ async function init(){
     const directionalLight = new THREE.DirectionalLight(0xffffff,0.8);
     directionalLight.position.set(0.5,1,0.5); scene.add(directionalLight);
 
-    // Luo 6-vuotiaan mittakaavan huone
+    // Luo huone 6-vuotiaan perspektiivissä
     createRoom();
 
-    // Luo avatar lapsen perspektiivissä
+    // Luo lapsi-avatar
     createChildAvatar();
 
     document.getElementById('startButton').addEventListener('click', startVRSession);
@@ -70,59 +70,63 @@ async function init(){
 }
 
 function createRoom(){
-    // Huoneen mittakaava (6-vuotiaan perspektiivi) -> 6-vuotias ~1.15 m silmien korkeus
-    const scale = 1.6 / 1.15; // suhteellinen mittakaava
+    const scale = 1.6 / 1.15; // 6-vuotiaan silmien korkeus ~1.15m
     const room = new THREE.Group();
     room.scale.set(scale, scale, scale);
 
-    // Lattia parketilla
+    // Epätasainen parkettilattia
     const floorGeo = new THREE.PlaneGeometry(10,10,20,20);
-    const floorMat = new THREE.MeshPhongMaterial({ color:0xdeb887, side:THREE.DoubleSide });
     for(let i=0;i<floorGeo.attributes.position.count;i++){
-        floorGeo.attributes.position.setY(i,(Math.random()-0.5)*0.02);
+        const y = (Math.random()*0.02); // 0-2cm korkeusvaihtelu
+        floorGeo.attributes.position.setY(i,y);
     }
     floorGeo.computeVertexNormals();
+    const floorMat = new THREE.MeshPhongMaterial({ color:0xdeb887, side:THREE.DoubleSide });
     const floor = new THREE.Mesh(floorGeo,floorMat);
     floor.rotation.x = -Math.PI/2;
     floor.position.y = 0;
     room.add(floor);
 
-    // Seinä - yksinkertainen, väri
+    // Seinät ja katto
     const wallMat = new THREE.MeshPhongMaterial({ color:0xcccccc });
     const wallGeo = new THREE.BoxGeometry(10,3,0.2);
-
-    const wall1 = new THREE.Mesh(wallGeo, wallMat);
-    wall1.position.set(0,1.5,-5); room.add(wall1);
-    const wall2 = new THREE.Mesh(wallGeo, wallMat);
-    wall2.position.set(0,1.5,5); room.add(wall2);
-
+    const wall1 = new THREE.Mesh(wallGeo, wallMat); wall1.position.set(0,1.5,-5); room.add(wall1);
+    const wall2 = new THREE.Mesh(wallGeo, wallMat); wall2.position.set(0,1.5,5); room.add(wall2);
     const wallSideGeo = new THREE.BoxGeometry(0.2,3,10);
-    const wall3 = new THREE.Mesh(wallSideGeo, wallMat);
-    wall3.position.set(-5,1.5,0); room.add(wall3);
-    const wall4 = new THREE.Mesh(wallSideGeo, wallMat);
-    wall4.position.set(5,1.5,0); room.add(wall4);
-
-    // Katto
+    const wall3 = new THREE.Mesh(wallSideGeo, wallMat); wall3.position.set(-5,1.5,0); room.add(wall3);
+    const wall4 = new THREE.Mesh(wallSideGeo, wallMat); wall4.position.set(5,1.5,0); room.add(wall4);
     const ceilingGeo = new THREE.PlaneGeometry(10,10);
     const ceilingMat = new THREE.MeshPhongMaterial({ color:0xdddddd, side:THREE.DoubleSide });
-    const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
-    ceiling.rotation.x = Math.PI/2;
-    ceiling.position.y = 3;
-    room.add(ceiling);
+    const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat); ceiling.rotation.x=Math.PI/2; ceiling.position.y=3; room.add(ceiling);
 
-    // Pöytä
-    const tableGeo = new THREE.BoxGeometry(2,0.75,1);
-    const tableMat = new THREE.MeshPhongMaterial({ color:0x8B4513 });
-    const table = new THREE.Mesh(tableGeo,tableMat);
-    table.position.set(0,0.375,0);
-    room.add(table);
+    // Huonekalut
+    const furnitureMat = new THREE.MeshPhongMaterial({ color:0x8B4513 });
 
-    // Tuoli
-    const chairGeo = new THREE.BoxGeometry(0.5,0.45,0.5);
+    // Pöydät
+    for(let i=0;i<2;i++){
+        const tableGeo = new THREE.BoxGeometry(2,0.75,1);
+        const table = new THREE.Mesh(tableGeo, furnitureMat);
+        table.position.set(-2+i*4,0.375,-1);
+        room.add(table);
+    }
+
+    // Tuolit
     const chairMat = new THREE.MeshPhongMaterial({ color:0xA0522D });
-    const chair = new THREE.Mesh(chairGeo, chairMat);
-    chair.position.set(1,0.225,0);
-    room.add(chair);
+    for(let i=0;i<4;i++){
+        const chairGeo = new THREE.BoxGeometry(0.5,0.45,0.5);
+        const chair = new THREE.Mesh(chairGeo, chairMat);
+        chair.position.set(-2+i*2,0.225,1);
+        room.add(chair);
+    }
+
+    // Kaapit
+    const cupboardMat = new THREE.MeshPhongMaterial({ color:0x556B2F });
+    for(let i=0;i<2;i++){
+        const cupboardGeo = new THREE.BoxGeometry(1,2,0.5);
+        const cupboard = new THREE.Mesh(cupboardGeo, cupboardMat);
+        cupboard.position.set(-3+i*6,1, -4);
+        room.add(cupboard);
+    }
 
     scene.add(room);
 }
