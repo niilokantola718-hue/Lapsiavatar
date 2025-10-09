@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Lapsi Avatar - VR 6-vuotias</title>
+    <title>Lapsi Avatar - VR 6-vuotias (parkettilattia)</title>
     <style>
         body { margin:0; padding:0; overflow:hidden; background:#000; font-family:-apple-system, BlinkMacSystemFont, sans-serif; }
         #ui {
@@ -55,13 +55,13 @@
 
             // Valaistus
             const ambientLight = new THREE.AmbientLight(0xffffff,0.8); scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff,0.6);
+            const directionalLight = new THREE.DirectionalLight(0xffffff,0.7);
             directionalLight.position.set(0.5,1,0.5); scene.add(directionalLight);
 
-            // Luo lattia (aidon parketin näköinen)
-            await createFloor();
+            // Luo parkettilattia
+            createFloor();
 
-            // Luo huone (seinät, katto)
+            // Luo huone
             createRoom();
 
             // Luo huonekaluja
@@ -76,42 +76,29 @@
             updateStatus('Valmis - paina käynnistä aloittaaksesi VR');
         }
 
-        async function createFloor(){
-            const textureLoader = new THREE.TextureLoader();
-            let woodTexture = null;
+        function createFloor(){
+            const group = new THREE.Group();
+            const plankWidth = 0.25;
+            const plankLength = 1;
+            const roomSize = 10;
+            const rows = Math.ceil(roomSize / plankWidth);
+            const cols = Math.ceil(roomSize / plankLength);
 
-            try {
-                woodTexture = await Promise.race([
-                    textureLoader.loadAsync('https://cdn.jsdelivr.net/gh/mrdoob/three.js@master/examples/textures/hardwood2_diffuse.jpg'),
-                    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Texture load timeout")),4000))
-                ]);
-            } catch(e){
-                console.warn("Tekstuurin lataus epäonnistui:", e);
+            for(let i=0; i<rows; i++){
+                for(let j=0; j<cols; j++){
+                    const colorTone = 0xA0522D + Math.floor(Math.random()*0x111111) - 0x080808;
+                    const mat = new THREE.MeshPhongMaterial({ color: colorTone });
+                    const geo = new THREE.BoxGeometry(plankLength, 0.02, plankWidth);
+                    const plank = new THREE.Mesh(geo, mat);
+                    plank.position.x = j*plankLength - roomSize/2 + plankLength/2;
+                    plank.position.z = i*plankWidth - roomSize/2 + plankWidth/2;
+                    plank.position.y = 0.6 + (Math.random()-0.5)*0.015; // epätasaisuus
+                    plank.rotation.y = (Math.random()-0.5)*0.02; // pieni kulma
+                    group.add(plank);
+                }
             }
 
-            const floorGeo = new THREE.PlaneGeometry(10, 10, 100, 100);
-            const floorMat = new THREE.MeshPhongMaterial({
-                color: woodTexture ? 0xffffff : 0xdeb887,
-                map: woodTexture || null,
-                side: THREE.DoubleSide,
-                shininess: 60
-            });
-
-            // Tee parketista elävä: pieniä epätasaisuuksia ja sävyvaihteluita
-            const pos = floorGeo.attributes.position;
-            for(let i=0; i<pos.count; i++){
-                const x = pos.getX(i);
-                const z = pos.getZ(i);
-                const y = Math.sin(x*2)*0.015 + Math.cos(z*2)*0.015 + (Math.random()-0.5)*0.01;
-                pos.setY(i, y);
-            }
-            pos.needsUpdate = true;
-            floorGeo.computeVertexNormals();
-
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI/2;
-            floor.position.y = 0.6; // lattia nostettu, jotta näet maailman 6-vuotiaan silmin
-            scene.add(floor);
+            scene.add(group);
         }
 
         function createRoom(){
@@ -136,13 +123,10 @@
         function createFurniture(){
             const mat1 = new THREE.MeshPhongMaterial({ color:0x8B4513 });
             const mat2 = new THREE.MeshPhongMaterial({ color:0xA0522D });
-            // Pöytä
             const table = new THREE.Mesh(new THREE.BoxGeometry(2,0.75,1), mat1);
             table.position.set(0,0.75/2 + 0.6,0); scene.add(table);
-            // Tuoli
             const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.45,0.5), mat2);
             chair.position.set(1,0.45/2 + 0.6,0); scene.add(chair);
-            // Lisäpalikka
             const box = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4), mat2);
             box.position.set(-1,0.2+0.6,1); scene.add(box);
         }
@@ -168,7 +152,7 @@
                 await renderer.xr.setSession(session);
                 document.getElementById('ui').style.display='none';
                 renderer.setAnimationLoop(render);
-                updateStatus('Olet nyt lapsi VR-tilassa, lattia nostettu 6-vuotiaan näkymälle!');
+                updateStatus('Olet nyt lapsi VR-tilassa, aidon parkettilattian päällä!');
             } catch(e){
                 updateStatus('VR-sessio epäonnistui: '+e.message);
             }
