@@ -58,7 +58,7 @@
             const directionalLight = new THREE.DirectionalLight(0xffffff,0.6);
             directionalLight.position.set(0.5,1,0.5); scene.add(directionalLight);
 
-            // Luo lattia parketilla
+            // Luo lattia (aidon parketin näköinen)
             await createFloor();
 
             // Luo huone (seinät, katto)
@@ -77,30 +77,40 @@
         }
 
         async function createFloor(){
-            // Ladataan puukuvioinen parkettitekstuuri
             const textureLoader = new THREE.TextureLoader();
-            const woodTexture = await textureLoader.loadAsync('https://threejsfundamentals.org/threejs/resources/images/compressed-but-large-wood-texture.jpg');
-            woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
-            woodTexture.repeat.set(4, 4);
+            let woodTexture = null;
+
+            try {
+                woodTexture = await Promise.race([
+                    textureLoader.loadAsync('https://cdn.jsdelivr.net/gh/mrdoob/three.js@master/examples/textures/hardwood2_diffuse.jpg'),
+                    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Texture load timeout")),4000))
+                ]);
+            } catch(e){
+                console.warn("Tekstuurin lataus epäonnistui:", e);
+            }
 
             const floorGeo = new THREE.PlaneGeometry(10, 10, 100, 100);
             const floorMat = new THREE.MeshPhongMaterial({
-                map: woodTexture,
+                color: woodTexture ? 0xffffff : 0xdeb887,
+                map: woodTexture || null,
                 side: THREE.DoubleSide,
                 shininess: 60
             });
 
-            // Luodaan pieniä epätasaisuuksia
-            for(let i=0; i<floorGeo.attributes.position.count; i++){
-                const y = Math.sin(floorGeo.attributes.position.getX(i) * 3) * 0.015 +
-                          (Math.random() - 0.5) * 0.01;
-                floorGeo.attributes.position.setY(i, y);
+            // Tee parketista elävä: pieniä epätasaisuuksia ja sävyvaihteluita
+            const pos = floorGeo.attributes.position;
+            for(let i=0; i<pos.count; i++){
+                const x = pos.getX(i);
+                const z = pos.getZ(i);
+                const y = Math.sin(x*2)*0.015 + Math.cos(z*2)*0.015 + (Math.random()-0.5)*0.01;
+                pos.setY(i, y);
             }
+            pos.needsUpdate = true;
             floorGeo.computeVertexNormals();
 
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI/2;
-            floor.position.y = 0.6; // ✅ nostettu lapsen korkeudelle
+            floor.position.y = 0.6; // lattia nostettu, jotta näet maailman 6-vuotiaan silmin
             scene.add(floor);
         }
 
@@ -158,7 +168,7 @@
                 await renderer.xr.setSession(session);
                 document.getElementById('ui').style.display='none';
                 renderer.setAnimationLoop(render);
-                updateStatus('Olet nyt lapsi VR-tilassa, parkettilattia nostettu 6-vuotiaan näkymälle!');
+                updateStatus('Olet nyt lapsi VR-tilassa, lattia nostettu 6-vuotiaan näkymälle!');
             } catch(e){
                 updateStatus('VR-sessio epäonnistui: '+e.message);
             }
